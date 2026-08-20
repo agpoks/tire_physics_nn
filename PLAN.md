@@ -314,7 +314,7 @@ Deterministic seeds (`torch`, `numpy`, `random`, `cudnn.deterministic`), YAML co
 ## 8. Milestones
 
 - [x] M0 — inspection, PLAN.md, repo skeleton, git
-- [ ] M1 — `physics/` (pacejka, brush, vehicle_dynamics, thermal, wear) + `layers/` + tests 1–7
+- [x] M1 — `physics/` (pacejka, brush, vehicle_dynamics, thermal, wear) + `layers/` + tests 1–7
 - [ ] M2 — `models/` static ladder + `training/` + synthetic Experiment 1
 - [ ] M3 — `data/` adapters + `scripts/download_*.py` + real-data Experiment 1
 - [ ] M4 — relaxation + sequence baselines + Experiment 2
