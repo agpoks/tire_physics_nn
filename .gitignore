@@ -17,3 +17,6 @@ results/
 checkpoints/
 *.pt
 *.ckpt
+
+# Experiment outputs
+results/

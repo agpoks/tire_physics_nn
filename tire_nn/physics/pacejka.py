@@ -21,6 +21,8 @@ from dataclasses import dataclass, asdict
 import torch
 from torch import Tensor
 
+from tire_nn.types import TireForces
+
 __all__ = [
     "MFParams",
     "magic_formula",
@@ -108,17 +110,31 @@ def pacejka_combined(
     Fz: Tensor,
     px: MFParams,
     py: MFParams,
+    theoretical_slip: bool = False,
 ) -> tuple[Tensor, Tensor]:
     """Combined slip by the *similarity* (normalised slip vector) method.
 
-    The theoretical slip vector ``(sigma_x, sigma_y) = (kappa, tan alpha)/(1+kappa)``
-    is what the brush model says the contact-patch shear follows; the resulting force
-    is aligned with it and has magnitude given by the pure-slip curve evaluated at
-    ``|sigma|``. This gives a friction-ellipse-shaped combined response without
-    introducing the ~20 extra weighting coefficients of full MF 6.x, and it keeps
-    force direction opposite to slip direction (dissipativity).
+    The slip vector ``(sigma_x, sigma_y)`` is what the brush model says the
+    contact-patch shear follows; the resulting force is aligned with it and has
+    magnitude given by the pure-slip curve evaluated at ``|sigma|``. This gives a
+    friction-ellipse-shaped combined response without the ~20 extra weighting
+    coefficients of full MF 6.x, and it keeps the force direction opposite to the slip
+    direction (dissipativity).
+
+    ``theoretical_slip`` selects the normalisation:
+
+    * ``False`` (default) — ``(kappa, tan alpha)``. **Exactly odd** in ``(alpha, kappa)``,
+      so the P2 symmetry guarantee also holds for the analytical and ParameterNet
+      rungs of the ladder, making the ablation comparison clean.
+    * ``True`` — ``(kappa, tan alpha) / (1 + kappa)``, the textbook theoretical slip.
+      More accurate at large *braking* slip, but note that it is **not** odd in
+      ``kappa``: the practical slip ratio is itself an asymmetric definition (driving
+      slip is unbounded above, braking slip is bounded by -1). That asymmetry is
+      kinematic, not constitutive — it lives in the definition of ``kappa``, not in
+      the tire's constitutive law — which is why the symmetric form is the default
+      here and the asymmetric one is opt-in for high-fidelity braking work.
     """
-    denom = 1.0 + torch.clamp(kappa, min=-0.99)
+    denom = 1.0 + torch.clamp(kappa, min=-0.99) if theoretical_slip else 1.0
     sx = kappa / denom
     sy = torch.tan(alpha) / denom
     s = torch.sqrt(sx * sx + sy * sy + EPS)
@@ -148,11 +164,18 @@ class MagicFormulaTire(torch.nn.Module):
     ``scripts/fit_magic_formula.py`` (scipy) and load the result.
     """
 
-    def __init__(self, px: MFParams | None = None, py: MFParams | None = None, combined: bool = True):
+    def __init__(
+        self,
+        px: MFParams | None = None,
+        py: MFParams | None = None,
+        combined: bool = True,
+        theoretical_slip: bool = False,
+    ):
         super().__init__()
         px = px or MFParams()
         py = py or MFParams()
         self.combined = combined
+        self.theoretical_slip = theoretical_slip
         for tag, p in (("x", px), ("y", py)):
             for k, v in p.as_dict().items():
                 self.register_buffer(f"{tag}_{k}", torch.as_tensor(float(v)))
@@ -160,11 +183,16 @@ class MagicFormulaTire(torch.nn.Module):
     def _params(self, tag: str) -> MFParams:
         return MFParams(**{k: getattr(self, f"{tag}_{k}") for k in MFParams().as_dict()})
 
-    def forward(self, alpha: Tensor, kappa: Tensor, Fz: Tensor, context: dict | None = None):
+    def forward(self, alpha: Tensor, kappa: Tensor, Fz: Tensor, context: dict | None = None) -> TireForces:
+        """Returns :class:`~tire_nn.types.TireForces`, which also unpacks as ``(Fx, Fy)``."""
         px, py = self._params("x"), self._params("y")
         if self.combined:
-            Fx, Fy = pacejka_combined(alpha, kappa, Fz, px, py)
+            Fx, Fy = pacejka_combined(alpha, kappa, Fz, px, py, self.theoretical_slip)
         else:
             Fx, _ = pacejka_longitudinal(kappa, Fz, px)
             Fy, _ = pacejka_lateral(alpha, Fz, py)
-        return Fx, Fy
+        mu_x = load_sensitive_mu(Fz, px.mu, px.k_mu, px.Fz0)
+        mu_y = load_sensitive_mu(Fz, py.mu, py.k_mu, py.Fz0)
+        return TireForces(Fx=Fx, Fy=Fy, params={"mu_x": mu_x, "mu_y": mu_y,
+                                                "C_alpha": cornering_stiffness(py, Fz),
+                                                "C_kappa": cornering_stiffness(px, Fz)})

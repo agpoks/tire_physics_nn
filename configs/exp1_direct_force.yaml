@@ -1,0 +1,47 @@
+# Experiment 1 — direct tire-force modelling (PLAN.md §5).
+#
+# Runs the full ablation ladder on one dataset and reports accuracy *and* physical
+# violations. Any override can be given on the command line as key.subkey=value.
+
+experiment: exp1_direct_force
+seed: 0
+device: cpu
+out_dir: results/exp1
+
+data:
+  source: synthetic          # synthetic | kit | vetyt | tum_cargo_bike | qmotion | roboracer
+  root: data/raw             # dataset root for real sources
+  targets: [Fx, Fy]
+  context_keys: []           # e.g. [p] for the Q-Motion pressure study
+  n_samples: 6000            # synthetic only
+  noise: 0.01                # synthetic only
+  pressure_range: null       # synthetic only, e.g. [150000, 250000]
+  split: [0.7, 0.15, 0.15]
+
+training:
+  epochs: 300
+  batch_size: 256
+  lr: 0.002
+  weight_decay: 0.0
+  loss: mse
+  normalize_by_load: true
+  patience: 60
+  friction_penalty_weight: 0.0   # overridden per-model for the mlp_penalty rung
+  mu_ref: 1.5
+
+models:
+  magic_formula: {}                       # fitted with scipy, not trained
+  mlp: {hidden: [64, 64]}
+  mlp_penalty: {hidden: [64, 64], friction_penalty: true}
+  symmetry: {hidden: [32, 32]}
+  encoded: {hidden: [32, 32]}
+  parameter: {hidden: [32, 32]}
+  residual: {hidden: [32, 32]}
+
+evaluation:
+  audit_alpha_max: 0.6         # audit grid is wider than training on purpose
+  audit_kappa_max: 0.6
+  learning_curve: true
+  learning_curve_points: 4
+  extrapolation: slip          # slip | load | none
+  plots: true
