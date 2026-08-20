@@ -1,6 +1,6 @@
 """Physics-encoded transient tire model (PLAN.md §3, P5).
 
-    tau_i = sigma_i / (|v_x| + eps),    dF_i/dt = (F_i,ss - F_i) / tau_i,   i in {x, y}
+    tau_i = sigma_i / (abs(v_x) + eps),    dF_i/dt = (F_i,ss - F_i) / tau_i,   i in {x, y}
 
 Why this structure rather than a generic recurrent cell: tire force does not respond
 instantaneously to a slip step, because the contact patch has to deform, and the
@@ -18,7 +18,7 @@ divergent transient.
 At standstill ``tau -> sigma/eps`` is large and the force is frozen rather than
 singular: a non-rolling tire does not relax, because relaxation is a rolling-distance
 phenomenon. That is the physically correct limit and it is why the regularisation is
-placed on ``|v_x|`` rather than on ``tau``.
+placed on the speed ``abs(v_x)`` rather than on ``tau``.
 """
 
 from __future__ import annotations
@@ -79,7 +79,7 @@ class RelaxationTireCell(BaseTireModel):
         return self.sigma_x(), self.sigma_y()
 
     def time_constants(self, vx: Tensor, params: dict) -> tuple[Tensor, Tensor]:
-        """``tau = sigma / (|vx| + eps)`` — strictly positive by construction."""
+        """``tau = sigma / (abs(vx) + eps)`` — strictly positive by construction."""
         sx, sy = self.relaxation_lengths(params)
         v = vx.abs() + self.v_eps
         return sx / v, sy / v

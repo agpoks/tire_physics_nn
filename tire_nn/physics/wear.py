@@ -2,11 +2,11 @@
 
 PLAN.md §3, P7.
 
-``wear``     : monotone non-decreasing, unbounded above (a one-way thermodynamic street).
-``graining`` : reversible, confined to ``[0, 1]`` *structurally* — at ``g = 0`` the sink
-               term vanishes and at ``g = 1`` the source term vanishes, so with
-               non-negative rates the interval is an invariant set. No clamping and no
-               penalty are needed, and the gradient stays informative at the boundary.
+``wear`` is monotone non-decreasing and unbounded above — a one-way thermodynamic
+street. ``graining`` is reversible but confined to ``[0, 1]`` *structurally*: at
+``g = 0`` the sink term vanishes and at ``g = 1`` the source term vanishes, so with
+non-negative rates the interval is an invariant set. No clamping and no penalty are
+needed, and the gradient stays informative at the boundary.
 
 The **rates** may come from small positive networks (``models/thermo_graining_tire.py``);
 this module only fixes the structure they are plugged into.

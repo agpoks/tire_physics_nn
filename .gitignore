@@ -20,3 +20,7 @@ checkpoints/
 
 # Experiment outputs
 results/
+
+# Sphinx build output and generated API stubs
+docs/_build/
+docs/source/autoapi/

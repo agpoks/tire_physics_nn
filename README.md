@@ -8,6 +8,15 @@ for any weights, the friction ellipse is enforced by a differentiable radial pro
 (never a penalty), relaxation is a first-order ODE in travelled distance, and one shared
 `TireNet` serves all four corners inside exact Newton–Euler vehicle equations.
 
+**Documentation:** the `docs/` tree builds a ReadTheDocs site with a full theory
+tutorial — every prior derived, justified, plotted and linked to the test that
+guarantees it — plus a quickstart, the experiment guide, the dataset reference and an
+auto-generated API reference:
+
+```bash
+cd docs && make figures && make html && open _build/html/index.html
+```
+
 Read **[PLAN.md](PLAN.md)** first — it documents the physical justification for every
 architectural decision, the module interfaces, and the canonical dataset format.
 
@@ -40,6 +49,8 @@ experiments/   train_direct_force / train_relaxation / train_vehicle_supervised 
 scripts/       download_<dataset>.py, fit_magic_formula.py
 notebooks/     01 encoded tire force, 02 relaxation+graining cell, 03 four-wheel supervision
 tests/         invariant tests (symmetry, envelope, bounds, monotonicity, shared weights)
+docs/          Sphinx/ReadTheDocs theory tutorial + API reference
+papers/        references.bib
 ```
 
 ## Datasets

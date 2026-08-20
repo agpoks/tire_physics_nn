@@ -1,0 +1,7 @@
+sphinx
+myst-parser
+sphinx-rtd-theme
+nbsphinx
+nbsphinx-link
+sphinx-autoapi
+sphinxcontrib-bibtex

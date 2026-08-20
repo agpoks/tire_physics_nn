@@ -7,8 +7,8 @@ choices in this module are the low-speed regularisation ``v_eps`` and the sign
 convention, both documented and both explicit.
 
 Sign convention (SAE, PLAN.md §4.1):
-    kappa = (R_e omega - vx) / max(|vx|, v_eps)   -> positive when driving
-    alpha = atan2(vy, |vx|) - delta               -> positive nose-out at the wheel
+    kappa = (R_e omega - vx) / max(abs(vx), v_eps)   -> positive when driving
+    alpha = atan2(vy, abs(vx)) - delta               -> positive nose-out at the wheel
 """
 
 from __future__ import annotations

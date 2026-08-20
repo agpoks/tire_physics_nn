@@ -1,0 +1,168 @@
+% References for tire_physics_nn.
+%
+% Entries marked  note = {UNVERIFIED — confirm before citing}  were not confirmed
+% against a primary source and must be checked before they appear in a paper.
+
+% ---------------------------------------------------------------- tire models
+@book{pacejka2012tire,
+  author    = {Pacejka, Hans B.},
+  title     = {Tire and Vehicle Dynamics},
+  edition   = {3rd},
+  publisher = {Butterworth-Heinemann},
+  year      = {2012},
+  isbn      = {978-0-08-097016-5},
+  note      = {The Magic Formula reference; combined slip, relaxation length and
+               the friction ellipse are all developed here.}
+}
+
+@article{besselink2010magicformula,
+  author  = {Besselink, Igo J. M. and Schmeitz, Antoine J. C. and Pacejka, Hans B.},
+  title   = {An improved {Magic Formula/Swift} tyre model that can handle inflation
+             pressure changes},
+  journal = {Vehicle System Dynamics},
+  volume  = {48},
+  number  = {sup1},
+  pages   = {337--352},
+  year    = {2010},
+  doi     = {10.1080/00423111003748088}
+}
+
+@phdthesis{svendenius2007tire,
+  author = {Svendenius, Jacob},
+  title  = {Tire Modeling and Friction Estimation},
+  school = {Lund University, Department of Automatic Control},
+  year   = {2007},
+  note   = {Brush-model derivation and combined-slip similarity method.}
+}
+
+@book{rajamani2012vehicle,
+  author    = {Rajamani, Rajesh},
+  title     = {Vehicle Dynamics and Control},
+  edition   = {2nd},
+  publisher = {Springer},
+  year      = {2012},
+  doi       = {10.1007/978-1-4614-1433-9}
+}
+
+% ------------------------------------------------------- learning + dynamics
+@article{raissi2019pinn,
+  author  = {Raissi, Maziar and Perdikaris, Paris and Karniadakis, George E.},
+  title   = {Physics-informed neural networks: A deep learning framework for solving
+             forward and inverse problems involving nonlinear partial differential equations},
+  journal = {Journal of Computational Physics},
+  volume  = {378},
+  pages   = {686--707},
+  year    = {2019},
+  doi     = {10.1016/j.jcp.2018.10.045}
+}
+
+@inproceedings{chen2018neuralode,
+  author    = {Chen, Ricky T. Q. and Rubanova, Yulia and Bettencourt, Jesse and Duvenaud, David},
+  title     = {Neural Ordinary Differential Equations},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2018}
+}
+
+@inproceedings{cho2014gru,
+  author    = {Cho, Kyunghyun and van Merri{\"e}nboer, Bart and Gulcehre, Caglar and
+               Bahdanau, Dzmitry and Bougares, Fethi and Schwenk, Holger and Bengio, Yoshua},
+  title     = {Learning Phrase Representations using {RNN} Encoder--Decoder for
+               Statistical Machine Translation},
+  booktitle = {Proceedings of EMNLP},
+  year      = {2014},
+  doi       = {10.3115/v1/D14-1179}
+}
+
+@article{chrosniak2024deepdynamics,
+  author  = {Chrosniak, John and Ning, Jingyun and Behl, Madhur},
+  title   = {Deep Dynamics: Vehicle Dynamics Modeling with a Physics-Constrained
+             Neural Network for Autonomous Racing},
+  journal = {IEEE Robotics and Automation Letters},
+  year    = {2024},
+  doi     = {10.1109/LRA.2024.3387134},
+  note    = {Preprint: arXiv:2312.04374. Code: https://github.com/linklab-uva/deep-dynamics}
+}
+
+@article{kabzan2019lbmpc,
+  author  = {Kabzan, Juraj and Hewing, Lukas and Liniger, Alexander and Zeilinger, Melanie N.},
+  title   = {Learning-Based Model Predictive Control for Autonomous Racing},
+  journal = {IEEE Robotics and Automation Letters},
+  volume  = {4},
+  number  = {4},
+  pages   = {3363--3370},
+  year    = {2019},
+  doi     = {10.1109/LRA.2019.2926677}
+}
+
+% -------------------------------------------------------------------- datasets
+@misc{kit2023tireforce,
+  author       = {{Karlsruhe Institute of Technology, Institute of Vehicle System Technology}},
+  title        = {Tire's force transmission characteristic on dry asphalt measured at the
+                  inner drum test bench of {KIT}},
+  howpublished = {RADAR4KIT research data repository},
+  url          = {https://radar.kit.edu/radar/en/dataset/p0rr2jc5wmf0drf8},
+  note         = {Lateral and longitudinal force-transmission characteristics, TYDEX C/H/W
+                  coordinate systems, plus a simulated slalom driving cycle.
+                  Licence: CC BY-NC-SA 4.0.}
+}
+
+@article{vetyt2024magicformula,
+  author  = {Dell'Orto, Gabriele and Ballo, Federico Maria and Gobbi, Massimiliano and
+             Mastinu, Giampiero},
+  title   = {Measurement of the lateral characteristics and identification of the
+             {Magic Formula} parameters of city and cargo bicycle tyres},
+  journal = {Vehicle System Dynamics},
+  year    = {2024},
+  doi     = {10.1080/00423114.2024.2338143},
+  note    = {Data measured on the VeTyT (Velo Tyre Testing) indoor test-rig,
+             Politecnico di Milano: lateral force and self-aligning moment under
+             Fz 343--526 N, camber -5/0/+5 deg, pressure 300--500 kPa.}
+}
+
+@article{vetyt2022testrig,
+  author  = {Dell'Orto, Gabriele and Ballo, Federico Maria and Gobbi, Massimiliano and
+             Mastinu, Giampiero},
+  title   = {Bicycle tyres -- Development of a new test-rig to measure mechanical
+             characteristics},
+  journal = {Measurement},
+  year    = {2022},
+  doi     = {10.1016/j.measurement.2022.111813}
+}
+
+@misc{tum_cargo_bike_tires,
+  title = {TUM cargo bicycle tire dataset (longitudinal and lateral characteristics)},
+  note  = {UNVERIFIED — no primary source confirmed at the time of writing.
+           See PLAN.md 4.4: this source must be located and verified, or dropped,
+           before it is used for any quantitative claim.},
+  year  = {2026}
+}
+
+@misc{roboracer_dataset,
+  title = {RoboRacer / F1TENTH model-structured neural-network dataset
+           (tire-set and mass-change experiments)},
+  note  = {UNVERIFIED — confirm the exact release and licence before use.},
+  year  = {2026}
+}
+
+@misc{qmotion_dataset,
+  title = {Q-Motion tire dataset with inflation-pressure variation},
+  note  = {UNVERIFIED — confirm the exact release and licence before use.},
+  year  = {2026}
+}
+
+% -------------------------------------------------------------------- software
+@misc{ontracksysid,
+  title = {On-Track-SysID: on-track system identification of {Pacejka} tire
+           parameters for small-scale autonomous racing},
+  note  = {Software reference; fitted parameters in params/pacejka\_params.yaml were used
+           to sanity-check the bounds in tire\_nn/layers/bounded\_parameters.py.},
+  year  = {2026}
+}
+
+@misc{torchdiffeq,
+  author       = {Chen, Ricky T. Q.},
+  title        = {torchdiffeq: Differentiable {ODE} solvers with full {GPU} support and
+                  {O(1)}-memory backpropagation},
+  howpublished = {\url{https://github.com/rtqichen/torchdiffeq}},
+  year         = {2018}
+}
