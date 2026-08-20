@@ -58,6 +58,15 @@ tutorials/quickstart
 tutorials/experiments
 ```
 
+```{toctree}
+:maxdepth: 1
+:caption: Notebooks
+
+notebooks/01_encoded_tire_force
+notebooks/02_relaxation_graining_tire_cell
+notebooks/03_four_wheel_physics_supervision
+```
+
 ## Conventions used throughout
 
 All equations use SI units and the **SAE sign convention** (see
