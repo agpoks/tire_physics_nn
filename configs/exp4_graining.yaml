@@ -1,0 +1,35 @@
+# Experiment 4 — thermal / wear / graining demonstrator (PLAN.md §5).
+#
+# SYNTHETIC AND WEAKLY SUPERVISED. This experiment demonstrates that the encoded
+# structure can reproduce and identify cold-start graining formation, clean-up on
+# warm-up and irreversible wear. It says NOTHING about real motorsport graining.
+
+experiment: exp4_graining
+seed: 0
+device: cpu
+out_dir: results/exp4
+
+data:
+  T: 24000
+  dt: 0.05
+  vx: 45.0
+  Fz: 3000.0
+  mu: 1.4
+  noise_state: 1.0       # noisy weak labels for Ts and graining
+  window: 400            # training window length [samples]
+
+training:
+  epochs: 40
+  lr: 0.005
+  batch_size: 16
+  weights:               # weak supervision is a mixture of force and state labels
+    force: 1.0
+    Ts: 0.5
+    graining: 0.5
+
+model:
+  steady: encoded
+  enable_thermal: true
+  enable_wear: true
+  enable_graining: true
+  hidden: [16, 16]

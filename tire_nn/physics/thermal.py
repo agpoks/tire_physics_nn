@@ -22,12 +22,22 @@ __all__ = ["ThermalParams", "slip_power", "thermal_rates"]
 
 @dataclass
 class ThermalParams:
-    Cs: float = 8.0e3     # surface heat capacity        [J/K]
-    Cc: float = 6.0e4     # core heat capacity           [J/K]
-    h_sc: float = 250.0   # surface <-> core conductance [W/K]
-    h_sa: float = 120.0   # surface <-> road/air         [W/K]
-    h_ca: float = 30.0    # core <-> air                 [W/K]
-    eta: float = 0.6      # fraction of slip power into the surface node [-]
+    """Lumped thermal parameters.
+
+    The defaults are **plausible engineering magnitudes for a full-size racing tire**,
+    not values identified from data: a surface node light enough to respond within a
+    corner (seconds), a core node an order of magnitude heavier (a stint), and losses
+    sized so that ~1 kW of sustained slip power lifts the surface roughly 15-25 K above
+    the road. They exist so the model runs and plots sensibly out of the box; identify
+    them (or learn a correction) before quoting any temperature quantitatively.
+    """
+
+    Cs: float = 6.0e3     # surface heat capacity        [J/K]
+    Cc: float = 4.0e4     # core heat capacity           [J/K]
+    h_sc: float = 150.0   # surface <-> core conductance [W/K]
+    h_sa: float = 40.0    # surface <-> road/air         [W/K]
+    h_ca: float = 15.0    # core <-> air                 [W/K]
+    eta: float = 0.7      # fraction of slip power into the surface node [-]
 
 
 def slip_power(Fx: Tensor, Fy: Tensor, vsx: Tensor, vsy: Tensor, clamp_positive: bool = True) -> Tensor:
