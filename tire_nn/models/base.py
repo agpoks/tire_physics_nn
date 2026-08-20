@@ -115,6 +115,16 @@ class BaseTireModel(nn.Module):
     def forward(self, alpha: Tensor, kappa: Tensor, Fz: Tensor, context=None) -> TireForces:
         raise NotImplementedError
 
+    def rollout(self, alpha, kappa, Fz, vx, dt, context=None, F0=None, method=None) -> Tensor:
+        """Quasi-static rollout: evaluate the steady-state law at every sample.
+
+        This *is* the "static TireNet" baseline of Experiment 2 — a model with no
+        transient dynamics applied to transient data. Subclasses with real dynamics
+        (``RelaxationTireCell``, and the sequence baselines) override it.
+        """
+        out = self(alpha, kappa, Fz, context)
+        return torch.stack([out.Fx, out.Fy], dim=-1)
+
     def describe(self) -> str:
         n = sum(p.numel() for p in self.parameters())
         return f"{type(self).__name__}(params={n}, encodes={self.encodes or ('none',)})"

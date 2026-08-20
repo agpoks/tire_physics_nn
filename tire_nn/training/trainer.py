@@ -44,6 +44,11 @@ class TrainConfig:
     device: str = "cpu"
     log_every: int = 25
     grad_clip: float = 10.0
+    #: "static" trains on per-sample forces; "sequence" rolls the model out over a
+    #: window and supervises the whole trajectory (Experiment 2 / relaxation).
+    mode: str = "static"
+    dt: float = 0.002
+    integrator: str = "rk4"
 
 
 def collate(batch: list[dict]) -> dict:
@@ -57,7 +62,32 @@ def collate(batch: list[dict]) -> dict:
     return out
 
 
+def _step_sequence(model, batch, cfg: TrainConfig, device):
+    """Trajectory loss: roll the model out over the window and compare every sample.
+
+    Supervising the whole rollout (rather than one-step-ahead) is what forces the
+    *dynamics* to be right: a one-step loss is dominated by the steady-state map and
+    barely constrains the time constant.
+    """
+    alpha = batch["alpha"].to(device)
+    kappa = batch["kappa"].to(device)
+    Fz = batch["Fz"].to(device)
+    ctx = {k: v.to(device) for k, v in batch["context"].items()}
+    vx = ctx.get("vx")
+    if vx is None:
+        raise ValueError("sequence mode needs 'vx' in the context (relaxation is distance-based)")
+    F = model.rollout(alpha, kappa, Fz, vx, cfg.dt, ctx, method=cfg.integrator)
+    loss = torch.zeros((), device=device)
+    for i, target in enumerate(("Fx", "Fy")):
+        if target in cfg.targets:
+            loss = loss + force_loss(F[..., i], batch[target].to(device),
+                                     Fz if cfg.normalize_by_load else None, cfg.loss)
+    return loss
+
+
 def _step(model, batch, cfg: TrainConfig, device):
+    if cfg.mode == "sequence":
+        return _step_sequence(model, batch, cfg, device)
     alpha = batch["alpha"].to(device)
     kappa = batch["kappa"].to(device)
     Fz = batch["Fz"].to(device)
@@ -163,12 +193,29 @@ def train_model(
 
 
 def append_summary(path: str | Path, row: dict) -> None:
-    """Append one experiment row to a CSV summary, writing the header if new."""
+    """Append one experiment row to a CSV summary.
+
+    Handles a growing schema: models report different fields (only the relaxation
+    models have a ``learned_sigma``, only the parameter models have ``mu``), so when a
+    new key appears the file is rewritten with the union of all columns and missing
+    entries left blank. Silently dropping the extra columns would lose exactly the
+    model-specific diagnostics the experiment is run for.
+    """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    exists = path.exists()
-    with open(path, "a", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(row))
-        if not exists:
-            writer.writeheader()
-        writer.writerow(row)
+    rows: list[dict] = []
+    fields: list[str] = []
+    if path.exists():
+        with open(path, newline="") as fh:
+            reader = csv.DictReader(fh)
+            fields = list(reader.fieldnames or [])
+            rows = list(reader)
+    for key in row:
+        if key not in fields:
+            fields.append(key)
+    rows.append({k: row.get(k, "") for k in fields})
+    with open(path, "w", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fields)
+        writer.writeheader()
+        for r in rows:
+            writer.writerow({k: r.get(k, "") for k in fields})

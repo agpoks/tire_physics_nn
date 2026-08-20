@@ -1,0 +1,42 @@
+# Experiment 2 — transient tire model (PLAN.md §5).
+#
+# The question: does encoding tau = sigma/|vx| beat learning the transient from data?
+# The decisive test is generalisation across *speed*, because a model that learns a
+# fixed time constant fits the speeds it saw and fails the others.
+
+experiment: exp2_relaxation
+seed: 0
+device: cpu
+out_dir: results/exp2
+
+data:
+  source: synthetic
+  n_sequences: 60
+  T: 400
+  dt: 0.002
+  sigma_x: 0.15          # ground truth, used to score the recovered value
+  sigma_y: 0.30
+  vx_range: [5.0, 35.0]
+  vary_mu: true
+  noise: 0.005
+  window: 80
+  split: [0.7, 0.15, 0.15]
+  # Speed-extrapolation holdout: train below this speed, test above it.
+  vx_train_max: 25.0
+
+training:
+  epochs: 60
+  batch_size: 64
+  lr: 0.005
+  loss: mse
+  normalize_by_load: true
+  patience: 20
+  mode: sequence
+  integrator: rk4
+
+models:
+  static:      {steady: encoded}                     # no dynamics at all
+  gru:         {hidden_size: 32}
+  neural_ode:  {hidden: [32, 32]}
+  relaxation:  {steady: encoded}                     # physics-encoded tau = sigma/v
+  relaxation_parameter: {steady: parameter, sigma_from_steady: true}

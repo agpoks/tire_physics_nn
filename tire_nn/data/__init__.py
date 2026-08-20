@@ -8,6 +8,7 @@ from tire_nn.data.common import (
     TireDataset,
     flip_sign_convention,
     make_synthetic,
+    make_synthetic_transient,
     split_by_condition,
     split_by_group,
     validate_schema,
@@ -15,6 +16,6 @@ from tire_nn.data.common import (
 
 __all__ = [
     "REQUIRED_COLUMNS", "OPTIONAL_COLUMNS", "CONTEXT_COLUMNS",
-    "validate_schema", "flip_sign_convention", "make_synthetic",
+    "validate_schema", "flip_sign_convention", "make_synthetic", "make_synthetic_transient",
     "TireDataset", "Normalizer", "split_by_group", "split_by_condition",
 ]
