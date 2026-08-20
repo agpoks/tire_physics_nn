@@ -152,11 +152,18 @@ def make_synthetic_transient(
     Different speeds per sequence are essential: a model that learns a fixed *time*
     constant instead of a fixed *length* fits one speed and fails the others.
     """
+    margin = 20
+    if T - 2 * margin < n_steps:
+        raise ValueError(
+            f"T={T} is too short for n_steps={n_steps}: step edges are placed in "
+            f"[{margin}, T-{margin}), which needs T >= {2 * margin + n_steps}. "
+            "Either lengthen the sequences or ask for fewer steps."
+        )
     rng = np.random.default_rng(seed)
     frames = []
     for s in range(n_sequences):
         vx = float(rng.uniform(*vx_range))
-        edges = np.sort(rng.choice(np.arange(20, T - 20), size=n_steps, replace=False))
+        edges = np.sort(rng.choice(np.arange(margin, T - margin), size=n_steps, replace=False))
         seg = np.zeros(T, dtype=int)
         for e in edges:
             seg[e:] += 1
