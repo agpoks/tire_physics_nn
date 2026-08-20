@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+*.egg-info/
+.venv/
+env/
+
+# Data is never committed — see data/README.md and PLAN.md 4.4
+data/raw/*
+data/processed/*
+data/public/*
+!data/**/.gitkeep
+
+# Run artifacts
+results/
+checkpoints/
+*.pt
+*.ckpt

@@ -1,0 +1,17 @@
+# Core (all verified present in the development environment)
+torch>=2.2
+numpy>=1.24
+scipy>=1.10
+pandas>=2.0
+matplotlib>=3.7
+scikit-learn>=1.3
+pyyaml>=6.0
+tqdm
+
+# Optional — the framework runs fully without these.
+# Neural-ODE integration path (fixed-step Euler/RK4 fallback is the default):
+# torchdiffeq>=0.2.3
+# Model-structured NN comparison baseline:
+# nnodely
+# Parquet IO for the canonical dataset format (CSV fallback otherwise):
+# pyarrow

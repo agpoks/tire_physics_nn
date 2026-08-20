@@ -1,0 +1,33 @@
+[project]
+name = "tire-physics-nn"
+version = "0.1.0"
+description = "Physics-encoded neural tire models for autonomous racing and motorsport"
+requires-python = ">=3.10"
+dependencies = [
+  "torch>=2.2",
+  "numpy",
+  "scipy",
+  "pandas",
+  "matplotlib",
+  "scikit-learn",
+  "pyyaml",
+  "tqdm",
+]
+
+[project.optional-dependencies]
+ode = ["torchdiffeq>=0.2.3"]
+compare = ["nnodely"]
+dev = ["pytest", "jupyterlab", "ipykernel", "pyarrow"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["tire_nn*"]
+
+[tool.pytest.ini_options]
+# The globally-installed anyio pytest plugin is incompatible with the installed
+# pytest version and breaks plugin autoload; this project does not use anyio.
+addopts = "-p no:anyio"
+testpaths = ["tests"]
