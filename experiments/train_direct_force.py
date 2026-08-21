@@ -148,9 +148,18 @@ def main() -> int:
                     evaluate_on(model, test_df, targets, context_keys, tire_index).items()})
         row.update({f"extrap_{k}": v for k, v in
                     evaluate_on(model, outer_df, targets, context_keys, tire_index).items()})
-        row.update(audit(model,
-                         alpha_max=cfg["evaluation"].get("audit_alpha_max", 0.6),
-                         kappa_max=cfg["evaluation"].get("audit_kappa_max", 0.6)))
+        # Audit against two friction limits: a deliberately generous one (a violation
+        # of it is unambiguous) and the limit a controller would actually plan
+        # against. A model can look clean against the generous limit and still promise
+        # more grip than the tire has.
+        audit_kw = dict(alpha_max=cfg["evaluation"].get("audit_alpha_max", 0.6),
+                        kappa_max=cfg["evaluation"].get("audit_kappa_max", 0.6))
+        generous = audit(model, mu_ref=cfg["evaluation"].get("audit_mu_generous", 1.5), **audit_kw)
+        row.update(generous)
+        tight = cfg["evaluation"].get("audit_mu_tight")
+        if tight is not None:
+            row["envelope_violation_tight"] = audit(model, mu_ref=float(tight), **audit_kw)["envelope_violation"]
+            row["audit_mu_tight"] = float(tight)
         append_summary(summary_path, row)
         print("  " + "  ".join(f"{k}={v:.4g}" for k, v in row.items() if isinstance(v, float)))
 

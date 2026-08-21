@@ -28,9 +28,9 @@ executed notebooks. 152 tests pass. See PLAN.md §8.
 
 ## What the priors buy
 
-Four *untrained* models (default initialisation, `set_seed(0)`) audited on a grid wider
-than any training range — violations are load-normalised, the audit is
-`tire_nn.evaluation.audit`:
+**Structural guarantees.** Four *untrained* models (default initialisation, `set_seed(0)`)
+audited on a grid wider than any training range — violations are load-normalised, the
+audit is `tire_nn.evaluation.audit`:
 
 | model | force at zero slip | odd-symmetry violation | friction-envelope violation |
 |---|---|---|---|
@@ -39,31 +39,49 @@ than any training range — violations are load-normalised, the audit is
 | symmetry-encoded (P2) | **0** | **0** | 7.76 |
 | symmetry + hard envelope (P2+P3) | **0** | **0** | **0** |
 
-\* the untrained MLP happens to output small forces, so it does not exceed a *generous*
-reference ellipse; after training on saturating data it does (0.26 in Experiment 1).
-Symmetry alone is the worst case for the envelope — a correct shape with an
-unconstrained magnitude.
+\* against a deliberately generous μ=1.5 reference ellipse. Symmetry alone is the worst
+case for the envelope — a correct shape with an unconstrained magnitude.
 
-Experiment 1 on synthetic Magic-Formula data, all rungs trained identically:
+**Experiment 1**, full budget (6 000 synthetic samples, 300 epochs, identical
+optimiser/seed/budget per rung). RMSE in newtons on a tire loaded to ~1.4 kN;
+`envelope (μ=1.1)` is measured against the *true* friction limit of the data, i.e. what
+a controller would plan against:
 
-| model | params | test $F_y$ RMSE [N] | zero-slip force | envelope violation |
-|---|---|---|---|---|
-| Magic Formula (fitted) | 0 | 16.2 | 0 | 0 |
-| plain MLP | 4 546 | 204.9 | 0.081 | 0.258 |
-| MLP + friction **penalty** | 4 546 | 208.9 | 0.069 | 0.252 |
-| symmetry-encoded | 1 250 | 120.1 | **0** | 0.431 |
-| symmetry + hard envelope | 1 254 | 28.2 | **0** | **0** |
-| ParameterNet + Magic Formula | 1 483 | **15.7** | **0** | **0** |
+| model | params | test $F_y$ RMSE | extrap. RMSE | zero-slip force | symmetry | envelope (μ=1.1) |
+|---|---|---|---|---|---|---|
+| Magic Formula (fitted) | 0 | 17.71 | 17.87 | 0 | 0 | 0 |
+| plain MLP | 4 546 | 18.61 | 18.32 | 0.016 | 0.076 | 0.065 |
+| MLP + friction **penalty** | 4 546 | 18.14 | 18.10 | 0.014 | 0.100 | 0.057 |
+| symmetry-encoded | 1 250 | 17.61 | 17.60 | **0** | **0** | 0.426 |
+| symmetry + hard envelope | 1 254 | 18.55 | 19.21 | **0** | **0** | **0** |
+| ParameterNet + Magic Formula | 1 483 | **17.39** | **17.49** | **0** | **0** | **0** |
+| residual grey-box | 1 254 | 17.47 | 17.48 | **0** | **0** | **0** |
 
-The soft penalty reduces the envelope violation by 2 %; the structural projection
-removes it. The encoded models use a quarter of the parameters and are seven times more
-accurate. (The data is Magic-Formula generated, so the ParameterNet result is expected
-to be strong — re-run on real rig data before comparing accuracy.)
+Read it carefully, because it does *not* say the priors make the model much more
+accurate:
 
-Experiment 2 measures the **rise-distance ratio** between 30 m/s and 10 m/s: ≈1 means
+1. **On clean, plentiful, in-distribution data, accuracy is close to a wash** — 17.4 to
+   18.6 N across every rung. What separates them is the guarantee column, not the RMSE
+   column. Anyone claiming a large accuracy win from physics encoding on data like this
+   is probably comparing against an under-trained baseline.
+2. **The friction penalty does not deliver the constraint.** It cut the violation of the
+   true limit by 13 % (0.065 → 0.057) and made the *symmetry* violation worse
+   (0.076 → 0.100) — it is a soft trade-off, not a constraint. The structural version is
+   exactly zero, for every weight vector.
+3. **Data efficiency is where the priors win decisively.** Test $F_y$ RMSE at 210
+   training samples: ParameterNet 17.4, encoded 20.6, residual 25.2, symmetry-only 75.3,
+   plain MLP 95.2. The MLP needs roughly an order of magnitude more data to reach what
+   the encoded models achieve immediately.
+
+**Experiment 2** measures the **rise-distance ratio** between 30 m/s and 10 m/s: ≈1 means
 the transient is parameterised by travelled distance (physically correct), ≈3 means a
 fixed time constant was learned. GRU 2.25, Neural ODE 3.00, encoded relaxation cells
 0.92–1.25.
+
+All numbers above come from synthetic, Magic-Formula-generated data with clean Gaussian
+noise on a dense slip grid — kinder than any real rig, and structurally matched to
+`ParameterTireNet`. Re-run on real measurements before drawing conclusions about
+relative accuracy.
 
 ## Install
 

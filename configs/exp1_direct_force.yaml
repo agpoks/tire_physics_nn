@@ -41,6 +41,8 @@ models:
 evaluation:
   audit_alpha_max: 0.6         # audit grid is wider than training on purpose
   audit_kappa_max: 0.6
+  audit_mu_generous: 1.5       # a violation of this is unambiguous
+  audit_mu_tight: 1.1          # the true mu of the synthetic data — what a controller plans against
   learning_curve: true
   learning_curve_points: 4
   extrapolation: slip          # slip | load | none
