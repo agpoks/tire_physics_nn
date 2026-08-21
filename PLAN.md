@@ -322,6 +322,66 @@ Deterministic seeds (`torch`, `numpy`, `random`, `cudnn.deterministic`), YAML co
 - [x] M6 — thermal/wear/graining + Experiment 4 (tests 8–9)
 - [x] M7 — notebooks, evaluation plots, README results table
 
+- [x] M8 — beyond the original scope: degradation UDE on real data, the contact patch as
+  a PDE, and condition from imagery (see below)
+
+### M8 — three additions beyond the original plan
+
+Each was requested after the plan was written, and each turned out to answer a question
+the earlier work had raised rather than merely extend it.
+
+**Experiment 5 — degradation as a universal differential equation**
+(`tire_nn/data/lap_degradation.py`, `tire_nn/models/degradation_ude.py`,
+`experiments/train_degradation_ude.py`, notebook 04). The first experiment with a
+**real** dataset attached: Formula 1 stint data via the MIT-licensed FastF1 package,
+8 races from 2023, 7 223 valid dry laps. Known observation structure (additive terms,
+linear fuel burn, state reset at a pit stop, monotone wear, bounded graining), learned
+kinetics.
+
+Its headline result is negative and is the reason it earns its place: across seeds on
+identical synthetic data the lap-time fit is stable to three decimals and the known fuel
+coefficient is recovered every time, while the split of degradation between the wear and
+graining channels swings by more than a factor of two. **One scalar per lap cannot
+separate two latent states.** On the real data a 45-parameter linear baseline
+generalises best; the UDE's value there is an interpretable, guaranteed-monotone state,
+not a better number.
+
+**The contact patch as a PDE** (`tire_nn/physics/brush_patch.py`,
+`tire_nn/models/patch_brush_net.py`, notebook 05). The brush model is the integral of a
+local boundary-value problem, so this keeps the local problem explicit: the bristle ODE
+becomes a cumulative sum along a chain of patch elements and the force a quadrature. It
+reproduces the closed form at second order and lets the *pressure distribution* be
+learned under constraints that hold by construction — `softmax` gives positivity and an
+exact load balance, the distribution-valued analogue of the bounded scalar transforms in
+§3 P4. On a tyre whose patch is not parabolic this reaches the noise floor where the
+parabolic assumption is 9× worse.
+
+**Condition from imagery** (`tire_nn/data/tread_images.py`,
+`tire_nn/models/condition_vision.py`, notebook 06). This closes the gap Experiment 5
+measured. Adding **one photograph per pit stop** collapses the seed-to-seed spread in the
+recovered wear from 0.511 to 0.018 while the lap-time fit is unchanged — information,
+not flexibility. No public dataset of tread depth or graining exists; what does exist is
+ordinal (new/serviceable/unusable), so the model is built for exactly that, with a single
+monotone wear index behind cumulatively-ordered thresholds, and recovers continuous wear
+at r ≈ 0.98 from three classes alone. The imagery itself is synthetic and labelled so
+throughout.
+
+### Known open items
+
+1. **No LICENSE file.** Needs choosing before publication. Note the KIT dataset is
+   CC BY-NC-SA 4.0, which constrains commercial use of derivatives.
+2. **Four references remain marked `UNVERIFIED`** in `papers/references.bib`
+   (TUM cargo bike, RoboRacer, Q-Motion, and the generic wear-dataset entry). They must
+   be located and confirmed, or dropped, before supporting any quantitative claim.
+3. **Only one real dataset is actually exercised.** The F1 stint adapter runs on real
+   downloaded data; the KIT, VeTyT, TUM, Deep Dynamics, RoboRacer and Q-Motion adapters
+   are written against documented schemas but have never seen a real file, so their
+   column maps are educated guesses until someone points them at the data.
+4. **Experiments 1–4 run on synthetic data**, which is Magic-Formula generated with clean
+   noise — kinder than any rig and structurally matched to `ParameterTireNet`.
+5. **Symbolic recovery of the learned closures** (SINDy-style) is not implemented; it is
+   the natural next step for the UDE work.
+
 ### Added after the milestone list was written
 
 - **Documentation** (`docs/`, `.readthedocs.yaml`) — an eight-chapter theory tutorial,
