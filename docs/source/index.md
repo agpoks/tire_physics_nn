@@ -133,6 +133,7 @@ notebooks/06_condition_from_images
 :caption: Guides
 
 guides/experiments
+guides/your-own-experiment
 guides/datasets
 guides/extending
 ```

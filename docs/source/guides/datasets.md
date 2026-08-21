@@ -24,22 +24,75 @@ table that uses it:
 : generated in this repository by `make_synthetic`, `make_synthetic_transient`,
   `make_synthetic_vehicle` or `make_synthetic_graining`.
 
-## Planned sources
+## Every dataset, with links
 
-| # | Dataset | Content | Type | Status | Used by |
-|---|---|---|---|---|---|
-| 1 | KIT inner-drum tire force transmission {cite}`kit2023tireforce` | $F_x$, $F_y$ vs slip and load on dry asphalt; TYDEX C/H/W frames; plus a simulated slalom cycle | **real** | [RADAR4KIT](https://radar.kit.edu/radar/en/dataset/p0rr2jc5wmf0drf8), CC BY-NC-SA 4.0, manual download | Exp 1 |
-| 2 | VeTyT bicycle tyre {cite}`vetyt2024magicformula,vetyt2022testrig` | $F_y$, $M_z$ vs slip; $F_z$ 343–526 N, camber ±5°, pressure 300–500 kPa | **real** | Politecnico di Milano test-rig; request from the authors | Exp 1 |
-| 3 | TUM cargo bicycle tire {cite}`tum_cargo_bike_tires` | longitudinal + lateral characteristics | **real** | *source unverified* — locate and confirm, or drop | Exp 1 |
-| 4 | Deep Dynamics (BayesRace, IAC) {cite}`chrosniak2024deepdynamics` | vehicle-level states and inputs | **simulated** (BayesRace) + **real** (IAC logs) | [linklab-uva/deep-dynamics](https://github.com/linklab-uva/deep-dynamics) | Exp 3 |
-| 5 | RoboRacer model-structured NN {cite}`roboracer_dataset` | vehicle-level, tire-set and mass-change experiments | **real**, small scale | *unverified* | Exp 2/3 |
-| 6 | Q-Motion {cite}`qmotion_dataset` | inflation-pressure variation | **real** | *unverified* | Exp 1, context generalisation |
-| 7 | Formula 1 stint data {cite}`fastf1` | lap time, compound, tyre age, track/air temperature | **real** | [FastF1](https://github.com/theOehrly/Fast-F1), MIT, no API key — `scripts/download_f1_stints.py` | Exp 5 |
-| — | in-repo synthetic | Magic Formula, relaxation, vehicle, graining, stints | **synthetic** | always available | Exp 1–5 |
+Generated from {py:data}`tire_nn.data.registry.DATASETS`, which is the single source of
+truth — the loader, the download helper and this table cannot drift apart.
 
-Entries marked *unverified* have no confirmed primary source at the time of writing.
-They must be located and verified — or dropped — before they support any quantitative
-claim. This is deliberate: an unverifiable dataset citation is worse than a missing one.
+| dataset | type | provides | acquisition | used by |
+|---|---|---|---|---|
+| `kit` — KIT inner-drum tire force transmission (dry asphalt) | real | Fx, Fy vs slip and load; TYDEX C/H/W frames; plus a simulated slalom cycle | [link](https://radar.kit.edu/radar/en/dataset/p0rr2jc5wmf0drf8), manual · ~hundreds of MB | Experiment 1 |
+| `vetyt` — VeTyT bicycle tyre measurements (Politecnico di Milano) | real | Fy, Mz vs slip; Fz 343–526 N, camber ±5°, pressure 300–500 kPa | [link](https://doi.org/10.1080/00423114.2024.2338143), manual · small | Experiment 1 (context / camber / pressure) |
+| `tum_cargo_bike` — TUM cargo bicycle tire characteristics | real ⚠ | longitudinal and lateral characteristics | **source unverified** | Experiment 1 |
+| `qmotion` — Q-Motion tire data with inflation-pressure variation | real ⚠ | forces vs slip across inflation pressures | **source unverified** | Experiment 1 (pressure generalisation) |
+| `deep_dynamics` — Deep Dynamics: BayesRace simulation + Indy Autonomous Challenge logs | real | vehicle-level states and inputs (no measured tire forces) | [link](https://github.com/linklab-uva/deep-dynamics), manual · ~tens of MB | Experiment 3 |
+| `roboracer` — RoboRacer / F1TENTH model-structured NN dataset | real ⚠ | vehicle-level logs with tire-set and mass-change experiments | **source unverified** | Experiments 2 and 3 |
+| `f1_stints` — Formula 1 stint data (lap time, compound, tyre age, weather) | real | lap time, compound, tyre age, track/air temperature, fuel fraction | [link](https://github.com/theOehrly/Fast-F1), **automatic** · ~50 MB for 8 races, cached locally | Experiment 5 |
+| `tyre_condition_images` — Tyre condition photographs (ordinal: new / serviceable / unusable) | real | photographs with ORDINAL wear labels — no measured tread depth | [link](https://www.kaggle.com/datasets/sameersambhare1/tyre-condition-classification-dataset), manual · ~100 MB | Notebook 6 (imaging) |
+| `synthetic_force` — Synthetic steady-state force data (Magic Formula + noise) | synthetic | alpha, kappa, Fz, Fx, Fy, optional pressure context | generated in-repo | Experiment 1 |
+| `synthetic_transient` — Synthetic step tests with known relaxation lengths | synthetic | slip/force sequences with a known sigma | generated in-repo | Experiment 2 |
+| `synthetic_vehicle` — Synthetic vehicle logs from a known tire | synthetic | IMU, yaw rate, wheel speeds, steering — no tire forces | generated in-repo | Experiment 3 |
+| `synthetic_stints` — Synthetic stints with known wear and graining | synthetic | lap times with latent wear/graining ground truth | generated in-repo | Experiment 5 |
+| `synthetic_images` — Synthetic tread imagery with known wear and graining | synthetic | grayscale tread patches, continuous wear/graining truth | generated in-repo | Notebook 6 |
+
+⚠ marks a source whose primary reference has **not** been confirmed. Those must be
+located and verified, or dropped, before they support any quantitative claim.
+
+Print the same information from Python, including the exact acquisition steps:
+
+```python
+from tire_nn.data import registry
+
+registry.describe()            # the whole table
+registry.describe("kit")       # one entry: url, licence, size, steps, target folder
+registry.available(real_only=True)
+```
+
+## Getting the data in
+
+One call fetches what can be fetched unattended, then loads it:
+
+```python
+from tire_nn.data import registry
+
+df = registry.get("synthetic_force", n=6000)      # always works
+df = registry.get("f1_stints")                     # downloads via FastF1, no API key
+df = registry.get("kit", root="data/raw")          # loads if present, else prints the steps
+```
+
+`fetch()` is deliberately conservative: it will not click a licence for you, use your
+Kaggle credentials, or pull a multi-gigabyte archive on your behalf. When it cannot
+proceed it raises with the exact steps rather than failing obscurely or silently
+substituting something else:
+
+```text
+NotImplementedError: KIT inner-drum tire force transmission (dry asphalt) cannot be
+fetched unattended.
+  1. Open the RADAR4KIT page above.
+  2. Accept the CC BY-NC-SA 4.0 licence and download the archive.
+  3. Extract into data/raw/kit/ , keeping the folder structure.
+  ...
+  url: https://radar.kit.edu/radar/en/dataset/p0rr2jc5wmf0drf8
+```
+
+:::{tip}
+**Start with `f1_stints`.** It is the only real dataset here that needs no manual step —
+FastF1 is MIT-licensed and needs no API key — so it is the fastest way to see the
+framework working on real measurements.
+:::
+
+An unverifiable dataset citation is worse than a missing one, which is why the
+unverified entries are flagged in the registry itself rather than quietly listed.
 
 ## The canonical schema
 

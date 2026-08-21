@@ -8,7 +8,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![PyTorch 2.2+](https://img.shields.io/badge/pytorch-2.2%2B-ee4c2c)](https://pytorch.org/)
-[![tests](https://img.shields.io/badge/tests-199%20passing-brightgreen)](tests/)
+[![tests](https://img.shields.io/badge/tests-218%20passing-brightgreen)](tests/)
 [![docs](https://img.shields.io/badge/docs-sphinx-informational)](docs/)
 
 A research framework for tire models in which the physics lives in the **architecture**
@@ -64,7 +64,7 @@ them certain. That is the whole idea.
   plus a properly fitted analytical model.
 - **Dataset adapters** for seven public tire, vehicle and stint datasets, onto canonical
   schemas — including a working, no-API-key path to real F1 timing data.
-- **199 tests**, with every structural guarantee checked under adversarially random
+- **218 tests**, with every structural guarantee checked under adversarially random
   weights.
 
 ## Installation
@@ -198,6 +198,24 @@ documentation.
 
 ## Datasets
 
+Every dataset is in one registry — {py:data}`tire_nn.data.registry.DATASETS` — which the
+loader, the download helper and the documentation table all read from, so they cannot
+drift apart:
+
+```python
+from tire_nn.data import registry
+
+registry.describe()                       # all 13, with type, licence and status
+registry.describe("kit")                  # url, size, licence, exact steps, target folder
+df = registry.get("f1_stints")            # downloads via FastF1 (no API key) and loads
+df = registry.get("kit", root="data/raw") # loads if present, else prints the steps
+```
+
+`fetch()` is deliberately conservative: it will not click a licence, use your Kaggle
+credentials or pull a multi-gigabyte archive on your behalf, and it never silently
+substitutes another dataset. **Start with `f1_stints`** — it is the only real dataset
+here that needs no manual step.
+
 No dataset is committed and nothing large downloads automatically. Each source has a
 `scripts/download_<name>.py` that fetches a small subset or prints exact manual steps.
 Adapters exist for the KIT inner-drum dataset, VeTyT bicycle tyre measurements, a TUM
@@ -214,6 +232,26 @@ python experiments/train_degradation_ude.py
 Every dataset is labelled **real measurement / simulated / game telemetry / synthetic**,
 and that label travels with it into any results table. Sources whose primary reference
 could not be verified are marked `UNVERIFIED` rather than guessed.
+
+## Running your own comparison
+
+```bash
+cp experiments/template_experiment.py experiments/my_experiment.py
+python experiments/my_experiment.py
+```
+
+Three places to edit — the dataset, the models, the budget. Or call the harness directly:
+
+```python
+from tire_nn.benchmark import compare, DEFAULT_MODELS
+
+table = compare({**DEFAULT_MODELS, "mine": lambda: MyTireModel()}, data, epochs=150)
+```
+
+Every comparison reports the physical-violation columns next to the error columns,
+because on clean in-distribution data a good black box and a good encoded model usually
+land within noise of each other on RMSE — the difference is in the guarantees. See
+[Running your own comparison](docs/source/guides/your-own-experiment.md).
 
 ## Testing
 
