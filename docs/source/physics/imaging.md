@@ -33,6 +33,23 @@ shapes what is honest to build:
 and a test asserts that none of them claims to provide depth — a guard against silently
 treating an ordinal class as a measurement.
 
+TyreNet is directly downloadable without credentials, but it is a **1.9 GB `.rar`**, so
+this project does not fetch it automatically (PLAN.md §4.4: nothing large downloads on
+its own). The verified URL and size are in the registry; fetch it deliberately if you
+want to work with real photographs.
+
+## The imagery used here
+
+```{figure} ../_static/figures/tread_images.png
+:alt: synthetic tread images across wear and graining
+:width: 100%
+
+Top: wear shallows and narrows the grooves, so image contrast carries the depth
+information — at `wear = 1` the grooves have closed up entirely. Bottom: graining adds
+mottled, torn-looking texture between the grooves at fixed wear. Two visually separable
+channels, which is what makes the identifiability experiment below meaningful.
+```
+
 ## The encoded vision model
 
 {py:class}`tire_nn.models.condition_vision.TreadConditionNet` builds in three things.
@@ -78,6 +95,14 @@ useful to a physical model.
 The experiment this page exists for. Take the degradation UDE and give it **one
 photograph per pit stop**: a single noisy graining reading at the end of each stint, with
 noise matching the vision model above (MAE 0.066).
+
+```{figure} ../_static/figures/identifiability_gain.png
+:alt: wear correlation with and without the image channel
+:width: 100%
+
+Four seeds per condition. Left: each point is one run; the bar is the mean. Right: the
+spread the runs disagree over.
+```
 
 | supervision | wear corr. (mean) | spread across seeds | lap-time RMSE [s] |
 |---|---|---|---|

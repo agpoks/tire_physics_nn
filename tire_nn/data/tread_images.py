@@ -73,7 +73,11 @@ REAL_IMAGE_DATASETS = {
     "tyrenet": dict(
         source="Mendeley Data 32b5vfj6tc: TyreNet, 1698 images",
         labels="binary (defective / good), expert annotated", target="classification",
-        note="Collected from six service stations and two showrooms."),
+        note="Collected from six service stations and two showrooms. Downloadable "
+             "without credentials, but it is a single 1.9 GB .rar archive, so this "
+             "project does not fetch it automatically (see PLAN.md 4.4). Get the "
+             "current link from https://data.mendeley.com/datasets/32b5vfj6tc/1 and "
+             "extract into data/raw/tyre_condition/<class>/."),
 }
 
 

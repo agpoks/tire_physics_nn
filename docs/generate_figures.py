@@ -487,6 +487,172 @@ def fig_learned_mu_bounds():
     return save(fig, "bounded_parameters.png")
 
 
+# ----------------------------------------------------------- contact patch
+def fig_patch_mechanics():
+    """What the discretised patch is doing internally: adhesion giving way to sliding."""
+    from tire_nn.physics.brush_patch import parabolic_pressure, patch_coordinates, patch_forces
+
+    A, KB, MU, NE = 0.06, 6.0e6, 1.0, 200
+    fig, axes = plt.subplots(1, 3, figsize=(10.4, 3.0), sharey=True)
+    for ax, slip in zip(axes, (0.015, 0.035, 0.07)):
+        a = torch.tensor([A])
+        Fz = torch.tensor([1000.0])
+        xi, _ = patch_coordinates(NE, a)
+        p = parabolic_pressure(xi, a, Fz)
+        out = patch_forces(torch.zeros(1), torch.tan(torch.tensor([slip])), Fz, a,
+                           torch.tensor([KB]), torch.tensor([MU]), n_elements=NE)
+        x = xi[0].numpy() * 1000
+        ax.plot(x, (MU * p[0]).numpy(), "k--", lw=1.3, label=r"bound $\mu p(\xi)$")
+        # tau_y is already the positive magnitude along the slip direction; the sign
+        # flip to SAE convention happens when it is integrated into Fy.
+        ax.plot(x, out["tau_y"][0].numpy(), color="tab:orange", lw=2.2, label=r"shear $|\tau|$")
+        ax.fill_between(x, 0, out["tau_y"][0].numpy(), color="tab:orange", alpha=0.22)
+        ax.set_xlabel("distance from leading edge [mm]")
+        ax.set_title(fr"$\alpha$={slip:.3f} rad, sliding {float(out['sliding_fraction']):.0%}",
+                     fontsize=9)
+    axes[0].set_ylabel("line load [N/m]")
+    axes[0].legend(fontsize=7.5, loc="upper left")
+    fig.suptitle("The sliding region eats forward from the trailing edge — that is the force curve",
+                 fontsize=9.5)
+    return save(fig, "patch_mechanics.png")
+
+
+def fig_patch_pressure_recovery():
+    """A tyre the parabolic assumption cannot represent, and what each model does."""
+    from tire_nn.models.patch_brush_net import PatchBrushNet
+    from tire_nn.physics.brush_patch import patch_coordinates, patch_forces
+
+    torch.manual_seed(0)
+    A, KB, MU, NE, n = 0.06, 6.0e6, 1.0, 48, 300
+    alpha = torch.linspace(-0.09, 0.09, n)
+    Fz = torch.full((n,), 1000.0)
+    a = torch.full((n,), A)
+    xi, _ = patch_coordinates(NE, a)
+    u = xi / (2 * a.unsqueeze(-1))
+    shape = torch.clamp(u, min=1e-6) ** 2.2 * torch.clamp(1 - u, min=1e-6) ** 0.9
+    dxi = (2 * a / NE).unsqueeze(-1)
+    p_true = shape / (shape * dxi).sum(-1, keepdim=True) * Fz.unsqueeze(-1)
+    truth = patch_forces(torch.zeros(n), torch.tan(alpha), Fz, a,
+                         torch.full((n,), KB), torch.full((n,), MU),
+                         pressure=p_true, n_elements=NE)["Fy"]
+    data = truth + torch.randn(n) * 3.0
+
+    fitted = {}
+    for label, learn in (("learned", True), ("parabolic", False)):
+        model = PatchBrushNet(n_elements=NE, learn_pressure=learn)
+        opt = torch.optim.Adam(model.parameters(), lr=0.02)
+        for _ in range(900):
+            opt.zero_grad(set_to_none=True)
+            loss = ((model(alpha, torch.zeros(n), Fz).Fy - data) ** 2).mean() / 1e6
+            loss.backward()
+            opt.step()
+        model.eval()
+        with torch.no_grad():
+            fitted[label] = (model.pressure_profile(torch.tensor([1000.0]))[0],
+                             model(alpha, torch.zeros(n), Fz).Fy,
+                             float(torch.sqrt(((model(alpha, torch.zeros(n), Fz).Fy - data) ** 2).mean())))
+
+    fig, axes = plt.subplots(1, 2, figsize=(9.4, 3.3))
+    x = xi[0].numpy() * 1000
+    axes[0].plot(x, p_true[0].numpy(), "k--", lw=1.7, label="true profile")
+    axes[0].plot(x, fitted["learned"][0].numpy(), color="tab:orange", lw=2.2, label="learned")
+    axes[0].plot(x, fitted["parabolic"][0].numpy(), color="tab:blue", lw=1.7, label="parabolic (fixed)")
+    axes[0].set_xlabel("distance from leading edge [mm]")
+    axes[0].set_ylabel("line load [N/m]")
+    axes[0].set_title("Pressure distribution")
+    axes[0].legend(fontsize=7.5)
+
+    axes[1].scatter(alpha, data, s=3, alpha=0.25, color="0.6", label="data (3 N noise)")
+    axes[1].plot(alpha, fitted["learned"][1], color="tab:orange", lw=2.2,
+                 label=f"learned, RMSE {fitted['learned'][2]:.1f} N")
+    axes[1].plot(alpha, fitted["parabolic"][1], color="tab:blue", lw=1.7,
+                 label=f"parabolic, RMSE {fitted['parabolic'][2]:.1f} N")
+    axes[1].set_xlabel(r"$\alpha$ [rad]")
+    axes[1].set_ylabel("$F_y$ [N]")
+    axes[1].set_title("Force curve")
+    axes[1].legend(fontsize=7.5)
+    return save(fig, "patch_pressure_recovery.png")
+
+
+# ---------------------------------------------------------------- imaging
+def fig_tread_images():
+    """The synthetic tread imagery: what wear and graining look like to a camera."""
+    from tire_nn.data.tread_images import make_tread_image
+
+    rng = np.random.default_rng(0)
+    values = (0.0, 0.25, 0.5, 0.75, 1.0)
+    fig, axes = plt.subplots(2, 5, figsize=(9.6, 4.3))
+    for j, v in enumerate(values):
+        axes[0, j].imshow(make_tread_image(v, 0.0, rng=rng), cmap="gray", vmin=0, vmax=1)
+        axes[0, j].set_title(f"wear {v:.2f}", fontsize=8.5)
+        axes[1, j].imshow(make_tread_image(0.3, v, rng=rng), cmap="gray", vmin=0, vmax=1)
+        axes[1, j].set_title(f"graining {v:.2f}", fontsize=8.5)
+    for ax in axes.ravel():
+        ax.set_xticks([])
+        ax.set_yticks([])
+    axes[0, 0].set_ylabel("wear sweep", fontsize=9)
+    axes[1, 0].set_ylabel("graining sweep\n(wear fixed at 0.3)", fontsize=9)
+    fig.suptitle("SYNTHETIC tread imagery — no public dataset of tread depth or graining exists",
+                 fontsize=9.5)
+    return save(fig, "tread_images.png")
+
+
+def fig_identifiability_gain():
+    """The measured effect of adding an image channel to the degradation UDE."""
+    # From notebook 06 / the seed sweeps: four seeds per condition.
+    lap_only = [0.283, 0.552, 0.794, 0.795]
+    with_image = [0.934, 0.942, 0.936, 0.952]
+    fig, axes = plt.subplots(1, 2, figsize=(9.0, 3.3))
+
+    for i, (label, values) in enumerate((("lap time\nonly", lap_only),
+                                         ("lap time\n+ image", with_image))):
+        axes[0].scatter([i] * len(values), values, s=55, alpha=0.8, zorder=3)
+        axes[0].plot([i - 0.17, i + 0.17], [np.mean(values)] * 2, "k-", lw=2.2, zorder=4)
+        axes[0].vlines(i, min(values), max(values), lw=10, alpha=0.18)
+    axes[0].set_xticks([0, 1])
+    axes[0].set_xticklabels(["lap time only", "lap time + image"])
+    axes[0].set_ylabel("wear correlation with hidden truth")
+    axes[0].set_ylim(0, 1.05)
+    axes[0].set_title("One photograph per pit stop")
+
+    axes[1].bar(["lap time\nonly", "lap time\n+ image"],
+                [max(lap_only) - min(lap_only), max(with_image) - min(with_image)],
+                color=["tab:red", "tab:green"], alpha=0.75)
+    axes[1].set_ylabel("spread across seeds")
+    axes[1].set_title("Spread collapses 28x")
+    for i, v in enumerate([max(lap_only) - min(lap_only), max(with_image) - min(with_image)]):
+        axes[1].text(i, v + 0.012, f"{v:.3f}", ha="center", fontsize=8.5)
+    return save(fig, "identifiability_gain.png")
+
+
+# ------------------------------------------------------------ degradation
+def fig_degradation_signal():
+    """The real degradation signal in F1 lap times, if the data has been downloaded."""
+    try:
+        from tire_nn.data.lap_degradation import load_fastf1_stints
+        df = load_fastf1_stints(ROOT / "data" / "raw")
+        source = f"{df['session_id'].nunique()} races, {len(df)} dry laps (real F1 timing)"
+    except Exception:
+        from tire_nn.data.lap_degradation import make_synthetic_stints
+        df = make_synthetic_stints(n_sessions=8, n_drivers=6, seed=0)
+        source = "SYNTHETIC stints (real F1 data not downloaded)"
+
+    d = df.copy()
+    d["rel"] = d["lap_time"] - d.groupby(["session_id", "driver", "stint"])["lap_time"].transform("median")
+    fig, ax = plt.subplots(figsize=(6.0, 3.5))
+    for compound in ("soft", "medium", "hard"):
+        subset = d[(d["compound"] == compound) & (d["tyre_age"] <= 20)]
+        if subset.empty:
+            continue
+        curve = subset.groupby("tyre_age")["rel"].median()
+        ax.plot(curve.index, curve.values, "o-", ms=3.5, lw=1.6, label=compound)
+    ax.axhline(0.0, color="k", lw=0.8, ls=":")
+    ax.set_xlabel("tyre age [laps]")
+    ax.set_ylabel("lap time relative to stint median [s]")
+    ax.set_title(f"Degradation seen through lap time\n{source}", fontsize=9)
+    ax.legend(fontsize=8)
+    return save(fig, "degradation_signal.png")
+
 def main():
     print("Generating documentation figures:")
     fig_symmetry()
@@ -504,6 +670,11 @@ def main():
     fig_violations()
     fig_learning_curve()
     fig_transient_ratio()
+    fig_patch_mechanics()
+    fig_patch_pressure_recovery()
+    fig_tread_images()
+    fig_identifiability_gain()
+    fig_degradation_signal()
     fig_learned_mu_bounds()
     print("done.")
 

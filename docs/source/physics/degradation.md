@@ -92,6 +92,16 @@ Tyre temperature is not published, so the thermal gating uses track and air temp
 as proxies.
 :::
 
+```{figure} ../_static/figures/degradation_signal.png
+:alt: lap time versus tyre age by compound
+:width: 68%
+
+The signal the model has to work with: lap time relative to the stint median, against
+tyre age, from real 2023 Formula 1 timing data. The soft compound loses roughly a second
+over a dozen laps and the hard degrades more slowly — but the scatter is large, because
+lap time also carries fuel load, traffic, driver management and track evolution.
+```
+
 ## What the data forced
 
 Two modelling decisions were not in the original design and were forced by the real

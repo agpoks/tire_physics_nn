@@ -59,11 +59,18 @@ The closed form assumes a **parabolic** pressure distribution and uniform bristl
 stiffness. Real patches are neither: load, inflation pressure, camber and wear all
 reshape them. The discretised form can represent that; the closed form cannot.
 
-It also exposes the mechanism. At small slip the shear stays under the bound everywhere
-(pure adhesion); as slip grows the shear meets the bound at the trailing edge first,
-where pressure has fallen, and the sliding region eats forward. **That migration is the
-force curve** — its saturation is not a fitted shape but the point where the bound
-binds.
+It also exposes the mechanism.
+
+```{figure} ../_static/figures/patch_mechanics.png
+:alt: shear along the contact patch at three slip levels
+:width: 100%
+
+At small slip the shear rises linearly from the leading edge and stays under the
+friction bound: pure adhesion. As slip grows it meets the bound — at the trailing edge
+first, where the pressure has fallen — and from there it *follows* the bound down. **That
+migration is the force curve**: saturation is not a fitted shape, it is the point where
+the bound binds.
+```
 
 ## The encoded model
 
@@ -111,6 +118,14 @@ from the first step by construction.
 ## Measured: a tyre the parabolic assumption cannot represent
 
 Force data generated from a skewed, flat-topped profile with 3 N noise:
+
+```{figure} ../_static/figures/patch_pressure_recovery.png
+:alt: recovered pressure distribution and force curve
+:width: 100%
+
+Left: the learned profile follows the true skewed, flat-topped distribution; the fixed
+parabola cannot. Right: the consequence for the force curve.
+```
 
 | model | force RMSE [N] |
 |---|---|
