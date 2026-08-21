@@ -320,7 +320,7 @@ Deterministic seeds (`torch`, `numpy`, `random`, `cudnn.deterministic`), YAML co
 - [x] M4 — relaxation + sequence baselines + Experiment 2
 - [x] M5 — four-wheel + Experiment 3 (tests 10–11)
 - [x] M6 — thermal/wear/graining + Experiment 4 (tests 8–9)
-- [ ] M7 — notebooks, evaluation plots, README results table
+- [x] M7 — notebooks, evaluation plots, README results table
 
 ### Added after the milestone list was written
 

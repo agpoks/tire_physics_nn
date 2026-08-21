@@ -115,20 +115,28 @@ The decisive diagnostic is the **rise distance ratio**: the distance travelled t
 
 - ratio $\approx 1$ — the transient is parameterised by distance (physically correct);
 - ratio $\approx 3$ — a fixed *time* constant was learned, so the distance scales with
-  speed.
+  speed;
+- any other value — the model has no consistent speed law at all.
 
-On a short smoke run (12 epochs, 24 sequences, true $\sigma_x = 0.15$,
-$\sigma_y = 0.30\,$m):
+Two independent runs (the Experiment 2 script, and notebook 2 with a shorter budget),
+true $\sigma_x = 0.15$, $\sigma_y = 0.30\,$m:
 
-| model | rise-distance ratio | test $F_y$ RMSE [N] | recovered $\sigma_y$ [m] |
+| model | rise-distance ratio (run 1) | ratio (run 2) | rollout $F_y$ RMSE [N], run 2 |
 |---|---|---|---|
-| static tire net | – (no transient) | 279 | – |
-| generic GRU {cite}`cho2014gru` | 2.25 | 277 | – |
-| generic Neural ODE {cite}`chen2018neuralode` | 3.00 | 280 | – |
-| **relaxation cell** | **1.25** | **141** | 0.25 |
-| **relaxation + ParameterNet** | **0.92** | **127** | – |
+| static tire net | – (no transient) | – | 293 |
+| generic GRU {cite}`cho2014gru` | 2.25 | 0.53 | 203 |
+| generic Neural ODE {cite}`chen2018neuralode` | 3.00 | 3.00 | 252 |
+| **relaxation cell** | **1.25** | **1.15** | **110** |
+| **relaxation + ParameterNet** | **0.92** | – | – |
 
-The encoded models are more accurate *and* return a physical number. Rerun with
+The result to take away is not that the baselines are uniformly worse at one number —
+it is that **their speed law is a property of the run rather than of the tire**. The
+Neural ODE consistently learned a fixed time constant; the GRU produced 2.25 in one run
+and 0.53 in the other, i.e. no stable scaling at all. Only the encoded cell lands near 1
+every time, because it cannot do anything else.
+
+The encoded cell also recovers the physical parameter: $\sigma_y \approx 0.25$–$0.28\,$m
+against a true $0.30\,$m, from a few epochs of step tests. Rerun with
 `python experiments/train_relaxation.py`.
 
 ## Guaranteed by tests

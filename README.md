@@ -75,8 +75,11 @@ accurate:
 
 **Experiment 2** measures the **rise-distance ratio** between 30 m/s and 10 m/s: ≈1 means
 the transient is parameterised by travelled distance (physically correct), ≈3 means a
-fixed time constant was learned. GRU 2.25, Neural ODE 3.00, encoded relaxation cells
-0.92–1.25.
+fixed *time* constant was learned. Across two runs the encoded relaxation cells score
+0.92–1.25, the Neural ODE 3.00 both times, and the GRU 2.25 and 0.53 — i.e. the
+unstructured baselines' speed law is a property of the run, not of the tire. The encoded
+cell also has the lowest rollout error (110 N vs the GRU's 203 N) and recovers
+$\sigma_y \approx 0.25$ m against a true 0.30 m.
 
 All numbers above come from synthetic, Magic-Formula-generated data with clean Gaussian
 noise on a dense slip grid — kinder than any real rig, and structurally matched to
