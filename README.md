@@ -8,7 +8,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![PyTorch 2.2+](https://img.shields.io/badge/pytorch-2.2%2B-ee4c2c)](https://pytorch.org/)
-[![tests](https://img.shields.io/badge/tests-226%20passing-brightgreen)](tests/)
+[![tests](https://img.shields.io/badge/tests-225%20passing-brightgreen)](tests/)
 [![docs](https://img.shields.io/badge/docs-sphinx-informational)](docs/)
 
 A research framework for tire models in which the physics lives in the **architecture**
@@ -64,7 +64,7 @@ them certain. That is the whole idea.
   plus a properly fitted analytical model.
 - **Dataset adapters** for seven public tire, vehicle and stint datasets, onto canonical
   schemas — including a working, no-API-key path to real F1 timing data.
-- **226 tests**, with every structural guarantee checked under adversarially random
+- **225 tests**, with every structural guarantee checked under adversarially random
   weights.
 
 ## Installation
