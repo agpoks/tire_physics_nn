@@ -167,7 +167,7 @@ def test_windows_never_straddle_a_sequence_boundary():
     df = make_synthetic_transient(n_sequences=3, T=60, seed=1)
     ds = TireDataset(df, targets=("Fy",), window=20)
     for idx in ds.windows:
-        assert df.loc[idx, "sequence_id"].nunique() == 1
+        assert df.loc[idx.numpy(), "sequence_id"].nunique() == 1
 
 
 def test_windowed_mode_requires_sequence_ids():

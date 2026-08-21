@@ -238,6 +238,11 @@ class TireDataset(Dataset):
     Static mode yields scalars per sample; windowed mode yields contiguous windows of
     length ``window`` from the same ``sequence_id``, which is what the relaxation and
     thermal models need. Windows never straddle a sequence boundary.
+
+    All columns are converted to tensors **once**, in the constructor, and
+    ``__getitem__`` only indexes them. Indexing the DataFrame per sample instead (one
+    ``.iloc`` call per item) rebuilt a small DataFrame for every element of every batch
+    and dominated training time — it made a 30-second fit take tens of minutes.
     """
 
     def __init__(
@@ -250,44 +255,49 @@ class TireDataset(Dataset):
         dtype: torch.dtype = torch.float32,
     ):
         validate_schema(df, targets)
-        self.df = df.reset_index(drop=True)
+        df = df.reset_index(drop=True)
+        self.df = df
         self.targets = tuple(targets)
         self.context_keys = tuple(context_keys)
         self.window = window
         self.dtype = dtype
         self.tire_index = tire_index or {name: i for i, name in enumerate(sorted(df["tire_id"].unique()))}
 
+        wanted = ("alpha", "kappa", "Fz", *self.targets, *self.context_keys, "t")
+        self.columns: dict[str, Tensor] = {
+            name: torch.as_tensor(df[name].to_numpy(), dtype=dtype)
+            for name in dict.fromkeys(wanted) if name in df.columns
+        }
+        self.tire_ids = torch.as_tensor([self.tire_index[t] for t in df["tire_id"]], dtype=torch.long)
+
         if window is not None:
             if "sequence_id" not in df.columns:
                 raise ValueError("windowed mode requires a 'sequence_id' column")
-            self.windows: list[np.ndarray] = []
-            for _, group in self.df.groupby("sequence_id", sort=True):
+            starts: list[np.ndarray] = []
+            for _, group in df.groupby("sequence_id", sort=True):
                 idx = group.index.to_numpy()
                 for start in range(0, len(idx) - window + 1):
-                    self.windows.append(idx[start:start + window])
+                    starts.append(idx[start:start + window])
+            self.windows = [torch.as_tensor(w, dtype=torch.long) for w in starts]
 
     def __len__(self) -> int:
         return len(self.windows) if self.window is not None else len(self.df)
 
-    def _rows(self, i: int) -> pd.DataFrame:
-        return self.df.loc[self.windows[i]] if self.window is not None else self.df.iloc[[i]]
-
     def __getitem__(self, i: int) -> dict[str, Tensor]:
-        rows = self._rows(i)
-        squeeze = self.window is None
+        if self.window is None:
+            take = lambda t: t[i]
+            tire = self.tire_ids[i]
+        else:
+            idx = self.windows[i]
+            take = lambda t: t[idx]
+            tire = self.tire_ids[idx]
 
-        def col(name: str) -> Tensor:
-            v = torch.as_tensor(rows[name].to_numpy(), dtype=self.dtype)
-            return v[0] if squeeze else v
-
-        item = {k: col(k) for k in ("alpha", "kappa", "Fz")}
-        item.update({k: col(k) for k in self.targets})
-        ctx = {k: col(k) for k in self.context_keys if k in rows.columns}
-        ids = torch.as_tensor([self.tire_index[t] for t in rows["tire_id"]], dtype=torch.long)
-        ctx["tire_id"] = ids[0] if squeeze else ids
-        item["context"] = ctx
-        if "t" in rows.columns:
-            item["t"] = col("t")
+        item = {name: take(values) for name, values in self.columns.items()
+                if name not in self.context_keys}
+        context = {name: take(self.columns[name]) for name in self.context_keys
+                   if name in self.columns}
+        context["tire_id"] = tire
+        item["context"] = context
         return item
 
 
