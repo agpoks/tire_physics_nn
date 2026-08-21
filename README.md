@@ -68,10 +68,34 @@ accurate:
    true limit by 13 % (0.065 → 0.057) and made the *symmetry* violation worse
    (0.076 → 0.100) — it is a soft trade-off, not a constraint. The structural version is
    exactly zero, for every weight vector.
-3. **Data efficiency is where the priors win decisively.** Test $F_y$ RMSE at 210
-   training samples: ParameterNet 17.4, encoded 20.6, residual 25.2, symmetry-only 75.3,
-   plain MLP 95.2. The MLP needs roughly an order of magnitude more data to reach what
-   the encoded models achieve immediately.
+3. **Data efficiency is where the priors win decisively**, and it is the only place the
+   accuracy gap is large — see the learning curve below.
+
+Test $F_y$ RMSE [N] vs training-set size — the regime a real tire programme lives in,
+because rig time is expensive:
+
+| training samples | Magic Formula (fitted) | plain MLP | symmetry | residual | encoded | ParameterNet |
+|---|---|---|---|---|---|---|
+| 210 | 196.9 | 95.2 | 75.3 | 25.2 | 20.6 | **17.4** |
+| 570 | 17.6 | 20.3 | 42.8 | 19.0 | 19.0 | **17.3** |
+| 1 547 | 17.6 | 18.4 | 26.8 | 18.1 | 18.8 | **17.3** |
+| 4 200 | 17.7 | 18.1 | 17.7 | 17.5 | 18.6 | **17.4** |
+
+Two things stand out:
+
+* **The encoded models are near their final accuracy from 210 samples.** The plain MLP
+  needs roughly an order of magnitude more data to catch up.
+* **The analytical baseline is not automatically data-efficient.** The `scipy`
+  Magic-Formula fit is the *worst* model at 210 samples (196.9 N) — five free parameters
+  on sparse, noisy data is an ill-conditioned fit — and only recovers by 570. The
+  ParameterNet contains the same Magic Formula but predicts its coefficients through
+  bounded transforms, and is stable at every size. The bounded parameterisation is doing
+  real regularisation work, not just bookkeeping.
+
+(The `mlp_penalty` column is omitted: a bug meant the learning-curve loop dropped the
+penalty, making that rung an exact duplicate of `mlp`. Fixed in
+`experiments/train_direct_force.py`; the main table above is unaffected, as it takes a
+separate code path.)
 
 **Experiment 2** measures the **rise-distance ratio** between 30 m/s and 10 m/s: ≈1 means
 the transient is parameterised by travelled distance (physically correct), ≈3 means a

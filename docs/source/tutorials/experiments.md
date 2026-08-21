@@ -52,10 +52,23 @@ Four things to read from this table, one of which is a warning:
    exactly zero for every weight vector, at no cost in RMSE.
 3. **Symmetry without the envelope is the worst case for the friction limit** (0.426).
    A correct shape with an unconstrained magnitude is not a safe model.
-4. **Data efficiency is where the priors win decisively.** Test $F_y$ RMSE at 210
-   training samples: ParameterNet 17.4, encoded 20.6, residual 25.2, symmetry-only 75.3,
-   plain MLP 95.2. That is the regime a real tire programme lives in — rig time is
-   expensive.
+4. **Data efficiency is where the priors win decisively**, and it is the only place the
+   accuracy gap is large:
+
+| training samples | Magic Formula (fitted) | plain MLP | symmetry | residual | encoded | ParameterNet |
+|---|---|---|---|---|---|---|
+| 210 | 196.9 | 95.2 | 75.3 | 25.2 | 20.6 | **17.4** |
+| 570 | 17.6 | 20.3 | 42.8 | 19.0 | 19.0 | **17.3** |
+| 1 547 | 17.6 | 18.4 | 26.8 | 18.1 | 18.8 | **17.3** |
+| 4 200 | 17.7 | 18.1 | 17.7 | 17.5 | 18.6 | **17.4** |
+
+   The encoded models are near their final accuracy from 210 samples, while the plain
+   MLP needs roughly an order of magnitude more data. Note also that the *analytical*
+   baseline is not automatically data-efficient — the `scipy` Magic-Formula fit is the
+   worst model at 210 samples (196.9 N), because five free parameters on sparse noisy
+   data is ill-conditioned. The ParameterNet contains the same Magic Formula but
+   predicts its coefficients through bounded transforms, and is stable at every size:
+   the bounded parameterisation is doing real regularisation work.
 
 :::{warning}
 This data is Magic-Formula generated with clean Gaussian noise on a dense slip grid.

@@ -174,8 +174,9 @@ def main() -> int:
                     px, py = fit_magic_formula(subset)
                     model = build_model(name, px=px, py=py)
                 else:
-                    mkw = {k: v for k, v in mkw.items() if k != "friction_penalty"}
-                    kwargs = dict(mkw, context_keys=context_keys,
+                    penalty = mkw.get("friction_penalty", False)
+                    kwargs = dict({k: v for k, v in mkw.items() if k != "friction_penalty"},
+                                  context_keys=context_keys,
                                   n_tires=len(tire_index) if len(tire_index) > 1 else 0)
                     if name == "residual":
                         px, py = fit_magic_formula(subset)
@@ -184,6 +185,13 @@ def main() -> int:
                     tcfg = TrainConfig(
                         **{k: v for k, v in tcfg_base.items() if k in TrainConfig.__dataclass_fields__},
                         targets=targets, seed=cfg.get("seed", 0), device=cfg.get("device", "cpu"))
+                    # The penalty has to be re-applied here too: without it the
+                    # mlp_penalty rung silently becomes an exact duplicate of mlp
+                    # (same architecture, same seed, same config) and the learning
+                    # curve reports two identical lines as if they were a comparison.
+                    if penalty:
+                        tcfg.friction_penalty_weight = max(
+                            tcfg_base.get("friction_penalty_weight", 0.0), 1.0)
                     train_model(model, make_ds(subset), make_ds(val_df), tcfg, verbose=False)
                 m = evaluate_on(model.eval(), test_df, targets, context_keys, tire_index)
                 append_summary(lc_path, {"n_train": n, "model": name, **m})
