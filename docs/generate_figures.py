@@ -653,6 +653,91 @@ def fig_degradation_signal():
     ax.legend(fontsize=8)
     return save(fig, "degradation_signal.png")
 
+def fig_real_tyre_images():
+    """Real tyre photographs, and what the encoded model does with them."""
+    import numpy as np
+    import torch
+    from torch.utils.data import DataLoader, TensorDataset
+
+    from tire_nn.data.tread_images import load_tyre_quality_images, make_tread_dataset
+    from tire_nn.models.condition_vision import TreadConditionNet, ordinal_loss
+
+    try:
+        real = load_tyre_quality_images(ROOT / "data" / "raw", size=64)
+    except FileNotFoundError:
+        print("  (real tyre photographs not downloaded — skipping; run "
+              "scripts/download_tyre_images.py)")
+        return None
+
+    torch.manual_seed(0)
+    X, y = real["images"], real["label"]
+    perm = torch.randperm(len(X), generator=torch.Generator().manual_seed(0))
+    X, y = X[perm], y[perm]
+    n_train = int(0.75 * len(X))
+    Xtr, ytr, Xte, yte = X[:n_train], y[:n_train], X[n_train:], y[n_train:]
+
+    def train_on(images, labels, epochs=30):
+        model = TreadConditionNet(n_classes=2, predict_graining=False, width=16)
+        opt = torch.optim.Adam(model.parameters(), lr=3e-3)
+        loader = DataLoader(TensorDataset(images, labels), batch_size=32, shuffle=True)
+        for _ in range(epochs):
+            for img, lab in loader:
+                opt.zero_grad(set_to_none=True)
+                ordinal_loss(model(img)["cumulative"], lab).backward()
+                opt.step()
+        return model.eval()
+
+    trained_real = train_on(Xtr, ytr)
+    synthetic = make_tread_dataset(n=1200, size=64, seed=0)
+    trained_syn = train_on(synthetic["images"], (synthetic["wear"] > 0.5).long())
+
+    with torch.no_grad():
+        out_real = trained_real(Xte)
+        out_transfer = trained_syn(Xte)
+
+    fig = plt.figure(figsize=(10.2, 5.6))
+    grid = fig.add_gridspec(2, 4, height_ratios=[1.15, 1.0], hspace=0.35, wspace=0.3)
+
+    # Row 1: the photographs themselves.
+    good_idx = (y == 0).nonzero().flatten()[:2]
+    bad_idx = (y == 1).nonzero().flatten()[:2]
+    for column, (index, label) in enumerate(
+            [(good_idx[0], "good"), (good_idx[1], "good"),
+             (bad_idx[0], "defective"), (bad_idx[1], "defective")]):
+        ax = fig.add_subplot(grid[0, column])
+        ax.imshow(X[index, 0].numpy(), cmap="gray", vmin=0, vmax=1)
+        ax.set_title(label, fontsize=9)
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    # Row 2, left: the learned wear index separates the real classes.
+    ax = fig.add_subplot(grid[1, :2])
+    bins = np.linspace(0, 1, 22)
+    ax.hist(out_real["wear"][yte == 0].numpy(), bins=bins, alpha=0.65, label="good")
+    ax.hist(out_real["wear"][yte == 1].numpy(), bins=bins, alpha=0.65, label="defective")
+    ax.axvline(float(trained_real.thresholds()[0].detach()), color="k", ls="--", lw=1.2,
+               label="learned threshold")
+    accuracy = float((out_real["class_prob"].argmax(-1) == yte).float().mean())
+    ax.set_xlabel("wear index")
+    ax.set_ylabel("count")
+    ax.set_title(f"Trained on real photographs — accuracy {accuracy:.2f}", fontsize=9.5)
+    ax.legend(fontsize=7.5)
+
+    # Row 2, right: the synthetic-trained model fails to transfer.
+    ax = fig.add_subplot(grid[1, 2:])
+    ax.hist(out_transfer["wear"][yte == 0].numpy(), bins=bins, alpha=0.65, label="good")
+    ax.hist(out_transfer["wear"][yte == 1].numpy(), bins=bins, alpha=0.65, label="defective")
+    transfer_acc = float((out_transfer["class_prob"].argmax(-1) == yte).float().mean())
+    ax.set_xlabel("wear index")
+    ax.set_title(f"Synthetic-trained, tested on real — accuracy {transfer_acc:.2f}\n"
+                 f"(chance = 0.50)", fontsize=9.5)
+    ax.legend(fontsize=7.5)
+
+    fig.suptitle("Real tyre photographs (NMiriams/Good_Tires, NMiriams/Defective_Tires, "
+                 "CC BY 4.0)", fontsize=9.5)
+    return save(fig, "real_tyre_images.png")
+
+
 def main():
     print("Generating documentation figures:")
     fig_symmetry()
@@ -675,6 +760,7 @@ def main():
     fig_tread_images()
     fig_identifiability_gain()
     fig_degradation_signal()
+    fig_real_tyre_images()
     fig_learned_mu_bounds()
     print("done.")
 

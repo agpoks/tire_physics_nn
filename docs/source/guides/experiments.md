@@ -19,6 +19,7 @@ Outputs land in `results/<experiment>/`: per-model checkpoints, `norm.json`,
 | 3 | `train_vehicle_supervised.py` | Can a tire be identified from IMU signals alone? | [benchmarks](../comparison/benchmarks) |
 | 4 | `train_graining.py` | Can the condition structure be identified at all? | [thermal](../physics/thermal-wear) |
 | 5 | `train_degradation_ude.py` | Can degradation dynamics be identified from lap times, on real data? | [degradation](../physics/degradation) |
+| 6 | `train_vision_condition.py` | Does the encoded ordinal model work on real photographs, and do synthetic textures transfer? | [imaging](../physics/imaging) |
 
 ## Experiment 1 — steady-state ablation
 
@@ -87,6 +88,18 @@ Compares a linear-in-tyre-age baseline, a black-box MLP and the UDE, holding out
 races. On synthetic stints, where the latent truth is known, the recovered states are
 additionally scored against it. Full discussion, including two modelling decisions the
 real data forced, is in [Degradation from stint data](../physics/degradation).
+
+## Experiment 6 — condition from imagery, real and synthetic
+
+```bash
+python -m pip install huggingface_hub
+python scripts/download_tyre_images.py --limit 250   # ~1850 photos, CC BY 4.0, no account
+python experiments/train_vision_condition.py
+```
+
+Trains the ordinal vision model on real photographs and on synthetic textures, and
+cross-tests. The headline is a negative result worth knowing: the synthetic-trained model
+performs at **chance** on real photographs. See [Imaging tyre condition](../physics/imaging).
 
 ## Runtime notes
 

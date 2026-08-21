@@ -8,7 +8,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![PyTorch 2.2+](https://img.shields.io/badge/pytorch-2.2%2B-ee4c2c)](https://pytorch.org/)
-[![tests](https://img.shields.io/badge/tests-222%20passing-brightgreen)](tests/)
+[![tests](https://img.shields.io/badge/tests-226%20passing-brightgreen)](tests/)
 [![docs](https://img.shields.io/badge/docs-sphinx-informational)](docs/)
 
 A research framework for tire models in which the physics lives in the **architecture**
@@ -56,15 +56,15 @@ them certain. That is the whole idea.
   pressure distribution learned under an exact load balance (`softmax`), beating the
   parabolic assumption 9× on a tyre whose patch is not parabolic.
 - **Condition from imagery** — a monotone wear index with ordered ordinal thresholds,
-  recovering continuous wear (r = 0.98) from the three ordered classes that real tyre
-  datasets actually provide.
+  validated on **real tyre photographs** (CC BY 4.0, no account needed) as well as
+  synthetic textures.
 - **Vehicle-level learning** — one shared tire model across four corners inside exact
   Newton–Euler equations, trainable from IMU signals alone.
 - **Honest baselines** — plain MLP, MLP + friction penalty, GRU and Neural ODE controls,
   plus a properly fitted analytical model.
 - **Dataset adapters** for seven public tire, vehicle and stint datasets, onto canonical
   schemas — including a working, no-API-key path to real F1 timing data.
-- **222 tests**, with every structural guarantee checked under adversarially random
+- **226 tests**, with every structural guarantee checked under adversarially random
   weights.
 
 ## Installation
@@ -133,7 +133,7 @@ tire_nn/
   training/    losses, metrics, deterministic trainer
   evaluation/  consistency audit, extrapolation protocol, plots
 configs/       one YAML per experiment
-experiments/   five runnable experiments
+experiments/   six runnable experiments
 notebooks/     six executed notebooks
 scripts/       dataset download helpers, Magic-Formula fitting
 docs/          Sphinx documentation and figure generators
@@ -176,6 +176,13 @@ decomposition is not reliably identifiable** — the lap-time fit is stable (RMS
 0.63. One scalar per lap cannot robustly separate two latent states. Trust the total
 degradation and the known parameters; do not trust an individual channel without a
 second observation.
+
+**Real images.** The ordinal vision model reaches 0.82 accuracy on real tyre photographs
+and orders them correctly. But a model trained on this project's *synthetic* textures
+performs at **chance** (0.46 against 0.50) on those same photographs, with its wear index
+inverted — the synthetic generator captures the structure of the problem, not the
+appearance of real tyres, and every synthetic result here should be read with that in
+mind.
 
 **Identifiability, and how to fix it.** The wear/graining split is not identifiable from
 lap time alone — across seeds the fit is stable while the recovered wear swings between

@@ -202,6 +202,27 @@ DATASETS: dict[str, Dataset] = {
              "click. Start with this one if you want real data quickly.",
     ),
     # -------------------------------------------------------------------- imagery
+    "tyre_quality_images": Dataset(
+        key="tyre_quality_images",
+        title="Real tyre photographs, good vs defective (Hugging Face, CC BY 4.0)",
+        kind="real",
+        provides="~1850 photographs with BINARY condition labels — no measured tread depth",
+        url="https://huggingface.co/datasets/NMiriams/Defective_Tires",
+        licence="CC BY 4.0",
+        size="~250 MB at 250 images per class, downscaled on save",
+        auto=True,
+        used_by="Notebook 6 (imaging), real-vs-synthetic comparison",
+        loader="tire_nn.data.tread_images.load_tyre_quality_images",
+        subdir="tyre_quality",
+        steps=(
+            "python -m pip install huggingface_hub",
+            "python scripts/download_tyre_images.py --limit 250",
+        ),
+        note="The only real tyre imagery here that needs no account. 'Defective' mixes "
+             "tread wear with cracking, bulges and punctures, so it is a condition "
+             "label and not a graded wear scale — useful for testing whether a monotone "
+             "latent orders real photographs, not for estimating wear depth.",
+    ),
     "tyre_condition_images": Dataset(
         key="tyre_condition_images",
         title="Tyre condition photographs (ordinal: new / serviceable / unusable)",

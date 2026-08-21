@@ -46,6 +46,7 @@ from torch import Tensor
 
 __all__ = [
     "ORDINAL_CLASSES",
+    "load_tyre_quality_images",
     "REAL_IMAGE_DATASETS",
     "make_tread_image",
     "make_tread_dataset",
@@ -59,9 +60,13 @@ ORDINAL_CLASSES = ("new", "serviceable", "unusable")
 #: Public datasets, with what they actually label. None provides measured tread depth.
 REAL_IMAGE_DATASETS = {
     "tyre_quality": dict(
-        source="Kaggle: warcoder/tyre-quality-classification",
-        labels="binary (cracked / normal)", target="classification",
-        note="Cracking is damage, not wear — do not use it as a wear proxy."),
+        source="Hugging Face: NMiriams/Good_Tires + NMiriams/Defective_Tires "
+               "(CC BY 4.0, ~1850 images, no credentials); also mirrored on Kaggle as "
+               "warcoder/tyre-quality-classification",
+        labels="binary (good / defective)", target="binary condition",
+        note="The only real tyre imagery here that downloads without an account. "
+             "'Defective' mixes tread wear with cracking, bulges and punctures, so it "
+             "is a condition label, NOT a graded wear scale."),
     "tyre_condition": dict(
         source="Kaggle: sameersambhare1/tyre-condition-classification-dataset",
         labels="ordinal (new / serviceable / unusable)", target="ordinal wear",
@@ -152,6 +157,72 @@ def make_tread_dataset(
         "wear": torch.as_tensor(wear, dtype=torch.float32),
         "graining": torch.as_tensor(graining, dtype=torch.float32),
         "label": torch.as_tensor(label, dtype=torch.long),
+    }
+
+
+def load_tyre_quality_images(
+    root: str | Path = "data/raw",
+    subdir: str = "tyre_quality",
+    size: int = 64,
+    grayscale: bool = True,
+):
+    """Load the real good/defective tyre photographs fetched by
+    ``scripts/download_tyre_images.py``.
+
+    **Type: real measurement (photographs), CC BY 4.0.** Labels are binary condition,
+    ordered ``good`` (0) < ``defective`` (1) by severity, which is the weakest possible
+    ordinal scale but a genuine one — enough to ask whether a monotone latent orders
+    real images sensibly.
+
+    What this data cannot do: it has no measured tread depth, and "defective" includes
+    damage modes (cracks, bulges, punctures) that are not wear at all. A model trained
+    on it estimates *condition*, not wear, and reporting it as wear would be exactly the
+    substitution this project's dataset registry exists to prevent.
+    """
+    import numpy as np
+
+    root = Path(root) / subdir
+    classes = ("good", "defective")
+    if not root.exists():
+        raise FileNotFoundError(
+            f"no tyre photographs under {root}.\n"
+            "Fetch them (CC BY 4.0, no account needed) with:\n"
+            "    python -m pip install huggingface_hub\n"
+            "    python scripts/download_tyre_images.py\n"
+        )
+    try:
+        from PIL import Image
+    except ImportError as exc:                        # pragma: no cover
+        raise ImportError("reading images needs pillow: pip install pillow") from exc
+
+    images, labels = [], []
+    for index, name in enumerate(classes):
+        folder = root / name
+        if not folder.exists():
+            continue
+        for path in sorted(folder.glob("*")):
+            if path.suffix.lower() not in (".jpg", ".jpeg", ".png", ".bmp"):
+                continue
+            img = Image.open(path)
+            img = img.convert("L" if grayscale else "RGB").resize((size, size))
+            images.append(np.asarray(img, dtype=np.float32) / 255.0)
+            labels.append(index)
+    if not images:
+        raise FileNotFoundError(f"found {root} but no images inside it")
+
+    array = np.stack(images)
+    if grayscale:
+        array = array[:, None]
+    else:
+        array = array.transpose(0, 3, 1, 2)
+    counts = {c: labels.count(i) for i, c in enumerate(classes)}
+    print(f"[tyre_quality] {len(images)} real photographs {counts}, "
+          f"binary condition labels (NOT measured tread depth)")
+    return {
+        "images": torch.as_tensor(array),
+        "label": torch.as_tensor(labels, dtype=torch.long),
+        "classes": classes,
+        "label_type": "binary condition",
     }
 
 

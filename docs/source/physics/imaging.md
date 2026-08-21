@@ -116,6 +116,69 @@ added flexibility**: the model does not fit better, it stops being ambiguous.
 This is the practical answer to "which latent channel do I trust?" — do not trust a
 channel no measurement sees. Add the measurement, or report only the total.
 
+
+## On real photographs
+
+Everything above uses synthetic textures. That is a real limitation, and it can now be
+checked, because one openly-licensed source of real tyre imagery needs no account:
+**NMiriams/Good_Tires** and **NMiriams/Defective_Tires** on the Hugging Face Hub,
+~1 850 photographs under **CC BY 4.0**.
+
+```bash
+python -m pip install huggingface_hub
+python scripts/download_tyre_images.py --limit 250
+python experiments/train_vision_condition.py
+```
+
+:::{warning}
+The labels are **binary condition** — good versus defective — and "defective" mixes
+tread wear with cracking, bulges and punctures. This is **not** a graded wear scale and
+contains **no measured tread depth**. It supports one question: does a monotone latent
+order real photographs sensibly? It does not support estimating how worn a tyre is.
+:::
+
+```{figure} ../_static/figures/real_tyre_images.png
+:alt: real tyre photographs and the model's wear index on them
+:width: 100%
+
+Top: real photographs from the dataset — close-ups of tread and sidewall. Bottom left:
+trained on real images, the wear index separates the two classes cleanly either side of
+the learned threshold. Bottom right: the same architecture trained on synthetic textures
+and applied to those photographs. Images CC BY 4.0.
+```
+
+| setting | accuracy | wear index, low class | high class | ordered correctly |
+|---|---|---|---|---|
+| synthetic → synthetic | 1.000 | 0.043 | 0.953 | ✅ |
+| **real → real** | **0.816** | 0.297 | 0.630 | ✅ |
+| **synthetic → real** (transfer) | **0.464** | 0.470 | 0.400 | ❌ **inverted** |
+
+Chance level is 0.500.
+
+Two conclusions, one encouraging and one not:
+
+**The encoded model works on real data.** Trained on photographs, the monotone wear index
+orders good below defective with a clean separation, at 0.82 accuracy from 375 training
+images and a network of about 5 000 parameters. The ordinal structure is doing real work
+here: the classes are all the supervision available, and the latent behind them is still
+a usable continuous scale.
+
+**The synthetic textures do not transfer at all.** A model trained on them performs at
+chance on real photographs, and its wear index is *inverted*. This is worth stating
+plainly: the synthetic generator is a stand-in for the **structure** of the problem —
+two visually separable channels driving a latent state — and not a renderer of real
+tyres. Look at the photographs above and the reason is obvious: they are close-ups at
+varying scale, lighting and framing, with sidewall lettering in frame, nothing like the
+clean groove textures the generator produces.
+
+**What this means for the identifiability result.** The experiment showing that one
+photograph per pit stop collapses the wear/graining ambiguity was run entirely in the
+synthetic domain, and it remains a statement about *information*, not about any
+particular camera: it says that a second channel observing the state resolves what
+lap time alone cannot. Reproducing it with real imagery would need something no public
+dataset provides — photographs of the *same tyre* through a stint, with the lap times
+alongside.
+
 ## Closing the loop
 
 The estimated state is not just a diagnostic: it is the input

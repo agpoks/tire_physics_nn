@@ -131,3 +131,60 @@ def test_vision_model_learns_wear_from_ordinal_labels_only():
         wear = model(test["images"])["wear"]
     corr = float(np.corrcoef(wear.numpy(), test["wear"].numpy())[0, 1])
     assert corr > 0.7, f"monotone latent only reached r={corr:.2f} against the true wear"
+
+
+# --- real photographs (skipped unless downloaded) ---------------------------
+
+def _real_images():
+    from tire_nn.data.tread_images import load_tyre_quality_images
+
+    try:
+        return load_tyre_quality_images("data/raw", size=64)
+    except FileNotFoundError:
+        pytest.skip("real tyre photographs not downloaded "
+                    "(scripts/download_tyre_images.py)")
+
+
+def test_real_images_load_in_the_expected_shape():
+    real = _real_images()
+    assert real["images"].ndim == 4 and real["images"].shape[1] == 1
+    assert real["label"].max() == 1
+    assert real["label_type"] == "binary condition", (
+        "the label type must say what it is: these are not tread-depth measurements")
+
+
+def test_real_images_are_normalised():
+    real = _real_images()
+    assert float(real["images"].min()) >= 0.0
+    assert float(real["images"].max()) <= 1.0
+
+
+def test_model_separates_real_classes_better_than_chance():
+    """The encoded ordinal model must work on real photographs, not just synthetic ones."""
+    from torch.utils.data import DataLoader, TensorDataset
+
+    real = _real_images()
+    torch.manual_seed(0)
+    order = torch.randperm(len(real["images"]), generator=torch.Generator().manual_seed(0))
+    images, labels = real["images"][order], real["label"][order]
+    split = int(0.75 * len(images))
+
+    model = TreadConditionNet(n_classes=2, predict_graining=False, width=12)
+    opt = torch.optim.Adam(model.parameters(), lr=3e-3)
+    loader = DataLoader(TensorDataset(images[:split], labels[:split]),
+                        batch_size=32, shuffle=True)
+    for _ in range(12):
+        for img, lab in loader:
+            opt.zero_grad(set_to_none=True)
+            ordinal_loss(model(img)["cumulative"], lab).backward()
+            opt.step()
+
+    model.eval()
+    with torch.no_grad():
+        out = model(images[split:])
+    accuracy = float((out["class_prob"].argmax(-1) == labels[split:]).float().mean())
+    assert accuracy > 0.6, f"only {accuracy:.2f} on real photographs (chance is 0.5)"
+
+    low = out["wear"][labels[split:] == 0].mean()
+    high = out["wear"][labels[split:] == 1].mean()
+    assert float(high) > float(low), "the wear index must order good below defective"
