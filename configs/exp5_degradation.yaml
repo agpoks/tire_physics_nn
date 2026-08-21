@@ -1,0 +1,33 @@
+# Experiment 5 — tyre degradation as a universal differential equation.
+#
+# Tyre condition is latent; only its consequence (lap time) is observed. The known
+# structure — additive fuel effect, state reset at a pit stop, monotone wear, bounded
+# graining — is encoded; the kinetics are learned.
+
+experiment: exp5_degradation
+seed: 0
+device: cpu
+out_dir: results/exp5
+
+data:
+  source: fastf1          # fastf1 | synthetic   (falls back to synthetic if absent)
+  root: data/raw
+  # synthetic-only settings
+  n_sessions: 8
+  n_drivers: 6
+  laps: 55
+  noise: 0.25
+  # split: hold out whole sessions, never individual laps
+  test_fraction: 0.25
+
+training:
+  epochs: 400
+  lr: 0.02
+  patience: 60
+  weight_decay: 0.0
+
+models:
+  linear: {}                          # practitioner baseline: lap time linear in tyre age
+  blackbox: {hidden: [32, 32]}        # MLP straight from features to lap time
+  ude_wear_only: {enable_graining: false}
+  ude: {}                             # wear + graining UDE

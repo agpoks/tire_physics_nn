@@ -4,7 +4,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![PyTorch 2.2+](https://img.shields.io/badge/pytorch-2.2%2B-ee4c2c)](https://pytorch.org/)
-[![tests](https://img.shields.io/badge/tests-157%20passing-brightgreen)](tests/)
+[![tests](https://img.shields.io/badge/tests-173%20passing-brightgreen)](tests/)
 [![docs](https://img.shields.io/badge/docs-sphinx-informational)](docs/)
 
 A research framework for tire models in which the physics lives in the **architecture**
@@ -45,12 +45,16 @@ them certain. That is the whole idea.
   friction envelope via differentiable radial projection, and bounded physical parameters.
 - **Dynamic extensions** — relaxation as a first-order ODE in travelled distance;
   optional thermal, wear and graining states with structural irreversibility and bounds.
+- **Degradation as a universal differential equation** — known observation structure,
+  learned kinetics, identified from **real Formula 1 stint data** where the tyre state
+  is never measured.
 - **Vehicle-level learning** — one shared tire model across four corners inside exact
   Newton–Euler equations, trainable from IMU signals alone.
 - **Honest baselines** — plain MLP, MLP + friction penalty, GRU and Neural ODE controls,
   plus a properly fitted analytical model.
-- **Dataset adapters** for six public tire and vehicle datasets, onto one canonical schema.
-- **157 tests**, with every structural guarantee checked under adversarially random
+- **Dataset adapters** for seven public tire, vehicle and stint datasets, onto canonical
+  schemas — including a working, no-API-key path to real F1 timing data.
+- **173 tests**, with every structural guarantee checked under adversarially random
   weights.
 
 ## Installation
@@ -119,7 +123,7 @@ tire_nn/
   training/    losses, metrics, deterministic trainer
   evaluation/  consistency audit, extrapolation protocol, plots
 configs/       one YAML per experiment
-experiments/   four runnable experiments
+experiments/   five runnable experiments
 notebooks/     three executed notebooks
 scripts/       dataset download helpers, Magic-Formula fitting
 docs/          Sphinx documentation and figure generators
@@ -151,6 +155,23 @@ size:
 | 210 | 196.9 | 95.2 | 20.6 | **17.4** |
 | 4 200 | 17.7 | 18.1 | 18.6 | **17.4** |
 
+**Degradation from real data.** Tyre condition is never measured, but lap time carries
+its consequence. A UDE — known observation structure, learned kinetics — is the most
+accurate model on synthetic stints (0.258 s vs 0.290 s for a linear baseline) and
+recovers the fuel coefficient as 3.48 s against a true 3.50 s, stably across seeds.
+
+But repeating the fit across six seeds on identical data shows the **wear/graining
+decomposition is not reliably identifiable** — the lap-time fit is stable (RMSE
+0.237–0.241) while the wear correlation with the hidden truth swings between 0.29 and
+0.63. One scalar per lap cannot robustly separate two latent states. Trust the total
+degradation and the known parameters; do not trust an individual channel without a
+second observation.
+
+On **real 2023 F1 data** (8 races, 7 223 dry laps, via FastF1) the 45-parameter linear
+baseline generalises best (0.82 s against the UDE's 1.10 s) — over a 14-lap stint real
+degradation is close to linear — while the black box overfits by more than 3×. Graining
+is not identifiable from this data at all, and the UDE reports ~0.
+
 Full tables, including the transient and vehicle-level experiments, are in the
 documentation.
 
@@ -165,7 +186,14 @@ No dataset is committed and nothing large downloads automatically. Each source h
 `scripts/download_<name>.py` that fetches a small subset or prints exact manual steps.
 Adapters exist for the KIT inner-drum dataset, VeTyT bicycle tyre measurements, a TUM
 cargo-bicycle set, Deep Dynamics (BayesRace + Indy Autonomous Challenge), RoboRacer and
-Q-Motion.
+Q-Motion. **Formula 1 stint data is the exception that needs no manual step** — it comes
+from the MIT-licensed FastF1 package with no API key:
+
+```bash
+python -m pip install fastf1
+python scripts/download_f1_stints.py --seasons 2023 --rounds 1 2 3 4 5 9 13 17
+python experiments/train_degradation_ude.py
+```
 
 Every dataset is labelled **real measurement / simulated / game telemetry / synthetic**,
 and that label travels with it into any results table. Sources whose primary reference

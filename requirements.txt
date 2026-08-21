@@ -15,3 +15,5 @@ tqdm
 # nnodely
 # Parquet IO for the canonical dataset format (CSV fallback otherwise):
 # pyarrow
+# Real Formula 1 stint data for the degradation experiment (MIT, no API key):
+# fastf1>=3.0

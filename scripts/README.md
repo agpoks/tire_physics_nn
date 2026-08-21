@@ -16,6 +16,7 @@ than a script that tells you what to do.
 | `download_deep_dynamics.py` | Deep Dynamics (BayesRace + IAC) | public git repository → manual clone |
 | `download_roboracer.py` | RoboRacer model-structured NN | **source unverified** |
 | `download_qmotion.py` | Q-Motion pressure variation | **source unverified** |
+| `download_f1_stints.py` | Formula 1 stint data (lap time, compound, tyre age, weather) | **works out of the box** — `pip install fastf1`, no API key |
 | `fit_magic_formula.py` | — | fits the analytical baseline with `scipy` |
 
 Every script prints its dataset's **type label** (real measurement / simulated / game

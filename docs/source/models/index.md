@@ -28,6 +28,9 @@ Fx, Fy = out                                  # unpacks like a tuple
 | `RelaxationTireCell` | physics-encoded, dynamic | + relaxation ODE | +2 | [dynamic](dynamic) |
 | `ThermoGrainingTire` | physics-encoded, dynamic | + thermal, wear, graining states | +1 k | [dynamic](dynamic) |
 | `FourWheelVehicle` | physics-encoded, vehicle | + exact Newton–Euler, one shared tire | shared | [vehicle](vehicle.md) |
+| `LapDegradationUDE` | physics-encoded, UDE | additive observation, monotone wear, bounded graining | 1 307 | [degradation](../physics/degradation) |
+| `LinearDegradationModel` | analytical baseline | lap time linear in tyre age | 47 | [degradation](../physics/degradation) |
+| `BlackBoxDegradationModel` | black box | none | 1 427 | [degradation](../physics/degradation) |
 
 \* at default width, for the configuration used in Experiment 1.
 

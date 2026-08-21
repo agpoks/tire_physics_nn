@@ -17,6 +17,7 @@ dependencies = [
 [project.optional-dependencies]
 ode = ["torchdiffeq>=0.2.3"]
 compare = ["nnodely"]
+f1 = ["fastf1>=3.0", "pyarrow"]      # real Formula 1 stint data for Experiment 5
 dev = ["pytest", "jupyterlab", "ipykernel", "pyarrow"]
 
 [build-system]

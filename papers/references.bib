@@ -189,3 +189,58 @@
   year    = {2016},
   doi     = {10.1073/pnas.1517384600}
 }
+
+% ------------------------------------------------- tyre degradation and wear
+@article{cappello2025f1degradation,
+  author  = {Cappello, Cole and Hoegh, Andrew},
+  title   = {A State-Space Approach to Modeling Tire Degradation in {Formula 1} Racing},
+  journal = {arXiv preprint arXiv:2512.00640},
+  year    = {2025},
+  doi     = {10.48550/arXiv.2512.00640},
+  note    = {Bayesian state-space model of lap time as a function of fuel mass and
+             latent tyre pace, with pit stops as state resets, fitted to public FastF1
+             timing data. Direct precedent for the observation model used in
+             Experiment 5.}
+}
+
+@article{kuzhiyil2025batteryude,
+  author  = {Kuzhiyil, Jishnu Ayyangatu and Damoulas, Theodoros and
+             Brosa Planella, Ferran and Widanage, Widanalage Dhammika},
+  title   = {Lithium-ion battery degradation modelling using universal differential
+             equations: Development of a cost-effective parameterisation methodology},
+  journal = {Applied Energy},
+  volume  = {382},
+  pages   = {125221},
+  year    = {2025},
+  doi     = {10.1016/j.apenergy.2024.125221},
+  note    = {The closest methodological analogue to Experiment 5: a known degradation
+             structure with neural closure terms, identified from indirect measurements
+             across widely separated time scales.}
+}
+
+@article{maglione2026rubberwear,
+  author  = {Maglione, Raffaele and Farroni, Flavio and Genovese, Andrea and
+             Napolitano Dell'Annunziata, Guido and Timpone, Francesco and
+             Sakhnevych, Aleksandr},
+  title   = {A comprehensive review on rubber wear modeling with focus on tire
+             applications},
+  journal = {iScience},
+  volume  = {29},
+  number  = {114755},
+  year    = {2026},
+  doi     = {10.1016/j.isci.2026.114755},
+  note    = {Survey of empirical, analytical, numerical and data-driven tyre-wear
+             models, 1960--2025. Useful for choosing what to encode when wear itself
+             is measured, rather than inferred from lap times.}
+}
+
+@misc{fastf1,
+  author       = {{FastF1 contributors}},
+  title        = {{FastF1}: Python package for accessing and analysing {Formula 1}
+                  results, schedules, timing data and telemetry},
+  howpublished = {\url{https://github.com/theOehrly/Fast-F1}},
+  year         = {2026},
+  note         = {MIT licence; no API key required. Used by
+                  \texttt{scripts/download\_f1\_stints.py}. The underlying timing data
+                  is subject to Formula 1's own terms.}
+}

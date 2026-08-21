@@ -19,13 +19,21 @@ __all__ = ["TrainConfig", "set_seed", "collate", "train_model", "append_summary"
 
 
 def set_seed(seed: int) -> None:
-    """Seed every RNG this project can touch, and disable nondeterministic kernels."""
+    """Seed every RNG this project can touch, and disable nondeterministic kernels.
+
+    The CUDA calls are guarded by an availability check. Calling
+    ``torch.cuda.manual_seed_all`` on a CUDA-built PyTorch with no usable device forces
+    a CUDA context initialisation that can kill the process outright — it reproducibly
+    killed the Jupyter kernel in this project's notebooks (torch 2.13+cu130 under WSL).
+    Guarding it costs nothing on a real GPU and makes the function safe everywhere.
+    """
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
 
 
 @dataclass

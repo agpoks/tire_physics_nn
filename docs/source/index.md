@@ -61,6 +61,7 @@ physics/steady-state
 physics/combined-slip
 physics/transient
 physics/thermal-wear
+physics/degradation
 physics/vehicle
 ```
 
@@ -105,6 +106,7 @@ comparison/tradeoffs
 notebooks/01_encoded_tire_force
 notebooks/02_relaxation_graining_tire_cell
 notebooks/03_four_wheel_physics_supervision
+notebooks/04_tyre_degradation_ude
 ```
 
 ```{toctree}

@@ -34,7 +34,8 @@ table that uses it:
 | 4 | Deep Dynamics (BayesRace, IAC) {cite}`chrosniak2024deepdynamics` | vehicle-level states and inputs | **simulated** (BayesRace) + **real** (IAC logs) | [linklab-uva/deep-dynamics](https://github.com/linklab-uva/deep-dynamics) | Exp 3 |
 | 5 | RoboRacer model-structured NN {cite}`roboracer_dataset` | vehicle-level, tire-set and mass-change experiments | **real**, small scale | *unverified* | Exp 2/3 |
 | 6 | Q-Motion {cite}`qmotion_dataset` | inflation-pressure variation | **real** | *unverified* | Exp 1, context generalisation |
-| — | in-repo synthetic | Magic Formula, relaxation, vehicle, graining | **synthetic** | always available | Exp 1–4 |
+| 7 | Formula 1 stint data {cite}`fastf1` | lap time, compound, tyre age, track/air temperature | **real** | [FastF1](https://github.com/theOehrly/Fast-F1), MIT, no API key — `scripts/download_f1_stints.py` | Exp 5 |
+| — | in-repo synthetic | Magic Formula, relaxation, vehicle, graining, stints | **synthetic** | always available | Exp 1–5 |
 
 Entries marked *unverified* have no confirmed primary source at the time of writing.
 They must be located and verified — or dropped — before they support any quantitative
@@ -63,6 +64,11 @@ small-scale race car.
 | `sequence_id` | int | sequences | splits never cut inside one |
 | `tire_id` | str | yes | compound/condition → embedding index |
 | `source` | str | yes | dataset tag |
+
+Stint-level degradation data uses a third schema (`tire_nn/data/lap_degradation.py`)
+with `tyre_age`, `compound`, `lap_time`, `track_temp`, `air_temp` and `fuel_frac`.
+Notably it has **no tyre-state column**, because nobody measures one — see
+[Degradation from stint data](../physics/degradation).
 
 Vehicle-level data uses a second schema (`tire_nn/data/vehicle.py`) with `vx, vy, r,
 ax, ay, r_dot, delta, omega_FL..RR`, and the vehicle geometry in the sidecar metadata.

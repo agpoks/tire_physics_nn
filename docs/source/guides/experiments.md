@@ -18,6 +18,7 @@ Outputs land in `results/<experiment>/`: per-model checkpoints, `norm.json`,
 | 2 | `train_relaxation.py` | Does encoding $\tau = \sigma/v$ beat learning the transient? | [transient](../physics/transient) |
 | 3 | `train_vehicle_supervised.py` | Can a tire be identified from IMU signals alone? | [benchmarks](../comparison/benchmarks) |
 | 4 | `train_graining.py` | Can the condition structure be identified at all? | [thermal](../physics/thermal-wear) |
+| 5 | `train_degradation_ude.py` | Can degradation dynamics be identified from lap times, on real data? | [degradation](../physics/degradation) |
 
 ## Experiment 1 — steady-state ablation
 
@@ -66,6 +67,27 @@ Generates a four-phase stint, trains the neural rate networks on noisy weak labe
 $T_s$ and $g$, rolls the trained model out from a cold, unworn, clean tire, and **asserts
 the structural guarantees on the trained model**.
 
+## Experiment 5 — degradation as a UDE
+
+The only experiment with a **real** dataset attached: Formula 1 stint data via FastF1.
+
+```bash
+python -m pip install fastf1
+python scripts/download_f1_stints.py --seasons 2023 --rounds 1 2 3 4 5 9 13 17
+python experiments/train_degradation_ude.py
+python experiments/train_degradation_ude.py --set data.source=synthetic   # known truth
+python experiments/train_degradation_ude.py --set data.source=synthetic --seeds 6
+```
+
+The `--seeds` sweep is worth running before believing any single result: the lap-time fit
+is stable across seeds while the split of degradation between the wear and graining
+channels is not.
+
+Compares a linear-in-tyre-age baseline, a black-box MLP and the UDE, holding out whole
+races. On synthetic stints, where the latent truth is known, the recovered states are
+additionally scored against it. Full discussion, including two modelling decisions the
+real data forced, is in [Degradation from stint data](../physics/degradation).
+
 ## Runtime notes
 
 The sequential models dominate cost — a 400-step rollout is 400 forward passes with
@@ -77,6 +99,7 @@ autograd. Budgets used for the published numbers:
 | 2 | 60 sequences × 400 | 60 | ~20 min |
 | 3 | 8 sequences × 1 200 | 150 | ~15 min |
 | 4 | 24 000 samples | 40 | ~15 min |
+| 5 | 7 400 real laps | 600 | ~4 min |
 
 ## Regenerating the documentation assets
 
