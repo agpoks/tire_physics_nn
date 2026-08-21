@@ -159,3 +159,58 @@ def test_effective_friction_monotone_in_condition():
     worn = effective_friction(mu, torch.ones(1), torch.zeros(1))
     grained = effective_friction(mu, torch.zeros(1), torch.ones(1) * 0.5)
     assert clean > worn > 0 and clean > grained > 0
+
+
+# --- the remaining analytical baselines -------------------------------------
+
+def test_linear_tire_is_the_tangent_of_the_magic_formula_at_zero_slip():
+    from tire_nn.physics import linear_tire
+
+    Fz = torch.full((1,), 1000.0)
+    p = MFParams(B=9.0, C=1.6, E=0.4, mu=1.1, k_mu=0.0)
+    C_alpha = cornering_stiffness(p, Fz)
+    small = torch.tensor([1e-4])
+    Fy_mf, _ = pacejka_lateral(small, Fz, p)
+    _, Fy_lin = linear_tire(small, torch.zeros(1), Fz, C_alpha, C_alpha)
+    assert torch.allclose(Fy_mf, Fy_lin, rtol=1e-3)
+
+
+def test_linear_tire_is_unbounded_which_is_exactly_its_failure_mode():
+    from tire_nn.physics import linear_tire
+
+    Fz = torch.full((3,), 1000.0)
+    _, Fy = linear_tire(torch.tensor([0.1, 0.5, 1.0]), torch.zeros(3), Fz, 50000.0, 50000.0)
+    assert Fy.abs().max() > 10 * float(Fz[0]), "linear model must exceed any friction limit"
+
+
+def test_dugoff_stays_within_the_friction_circle():
+    from tire_nn.physics import dugoff_tire
+
+    n = 40
+    a = torch.linspace(-0.5, 0.5, n).repeat_interleave(n)
+    k = torch.linspace(-0.5, 0.5, n).repeat(n)
+    Fz = torch.full_like(a, 1200.0)
+    Fx, Fy = dugoff_tire(a, k, Fz, 45000.0, 55000.0, 0.9)
+    assert float((torch.sqrt(Fx**2 + Fy**2) / Fz).max()) <= 0.9 + 1e-4
+
+
+def test_dugoff_is_odd_and_zero_at_zero_slip():
+    from tire_nn.physics import dugoff_tire
+
+    a = torch.linspace(-0.3, 0.3, 51)
+    Fz = torch.full_like(a, 1000.0)
+    z = torch.zeros_like(a)
+    Fx, Fy = dugoff_tire(a, z, Fz, 40000.0, 50000.0, 1.0)
+    Fx_m, Fy_m = dugoff_tire(-a, z, Fz, 40000.0, 50000.0, 1.0)
+    assert torch.allclose(Fy, -Fy_m, atol=1e-5)
+    assert abs(float(dugoff_tire(torch.zeros(1), torch.zeros(1), Fz[:1], 4e4, 5e4, 1.0)[1])) < 1e-6
+
+
+def test_dugoff_matches_the_linear_model_in_the_adhesion_region():
+    from tire_nn.physics import dugoff_tire, linear_tire
+
+    Fz = torch.full((1,), 3000.0)          # heavily loaded -> lambda >> 1 at small slip
+    a = torch.tensor([1e-3])
+    z = torch.zeros(1)
+    assert torch.allclose(dugoff_tire(a, z, Fz, 40000.0, 50000.0, 1.2)[1],
+                          linear_tire(a, z, Fz, 40000.0, 50000.0)[1], rtol=1e-3)

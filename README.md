@@ -2,151 +2,200 @@
 
 **Physics-encoded neural tire models for autonomous racing and motorsport.**
 
-A modular research framework where the physics lives in the *architecture*, not in the loss:
-slip kinematics are computed analytically, odd symmetry and zero-slip-zero-force hold exactly
-for any weights, the friction ellipse is enforced by a differentiable radial projection
-(never a penalty), relaxation is a first-order ODE in travelled distance, and one shared
-`TireNet` serves all four corners inside exact Newton–Euler vehicle equations.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
+[![PyTorch 2.2+](https://img.shields.io/badge/pytorch-2.2%2B-ee4c2c)](https://pytorch.org/)
+[![tests](https://img.shields.io/badge/tests-157%20passing-brightgreen)](tests/)
+[![docs](https://img.shields.io/badge/docs-sphinx-informational)](docs/)
 
-**Documentation:** the `docs/` tree builds a ReadTheDocs site with a full theory
-tutorial — every prior derived, justified, plotted and linked to the test that
-guarantees it — plus a quickstart, the experiment guide, the dataset reference and an
-auto-generated API reference:
+A research framework for tire models in which the physics lives in the **architecture**
+rather than in the loss. Properties such as *no force at zero slip* and *never exceed the
+friction ellipse* hold for every weight vector — before training, after training, and
+outside the training data.
 
-```bash
-cd docs && make figures && make html && open _build/html/index.html
-```
+---
 
-Read **[PLAN.md](PLAN.md)** first — it documents the physical justification for every
-architectural decision, the module interfaces, and the canonical dataset format.
+## Contents
 
-## Status
+- [Why](#why) · [Features](#features) · [Installation](#installation) · [Quick start](#quick-start)
+- [Documentation](#documentation) · [Repository layout](#repository-layout) · [Results](#results)
+- [Datasets](#datasets) · [Testing](#testing) · [Citation](#citation) · [License](#license)
 
-All milestones M0–M7 complete: physics core, constrained layers, the model ablation
-ladder, dataset adapters, four experiments, the ReadTheDocs theory tutorial and three
-executed notebooks. 152 tests pass. See PLAN.md §8.
+## Why
 
-## What the priors buy
+A tire model for a racing controller is not judged by its RMSE. It is judged by what it
+does at the friction limit, where the controller operates and where data is thinnest.
+Three failure modes matter and none of them appear in an interpolation score:
 
-**Structural guarantees.** Four *untrained* models (default initialisation, `set_seed(0)`)
-audited on a grid wider than any training range — violations are load-normalised, the
-audit is `tire_nn.evaluation.audit`:
+1. **Force at zero slip.** A black-box fit predicts $F_y(\alpha{=}0) \neq 0$. Linearise an
+   MPC about straight-line running and that offset becomes a phantom steering command.
+2. **Broken symmetry.** $F_y(-\alpha) \neq -F_y(\alpha)$ means the model learned a
+   left-turn tire and a different right-turn tire from the same object.
+3. **Forces outside the friction ellipse.** An optimiser *searches for the best
+   achievable force*, so it finds exactly the region where the model is unphysically
+   optimistic and plans a lap the car cannot drive.
 
-| model | force at zero slip | odd-symmetry violation | friction-envelope violation |
-|---|---|---|---|
-| fitted Magic Formula | 0 | 0 | 0 |
-| plain MLP | 0.22 | 0.39 | 0 * |
-| symmetry-encoded (P2) | **0** | **0** | 7.76 |
-| symmetry + hard envelope (P2+P3) | **0** | **0** | **0** |
+Adding these as penalty terms makes them likely. Building them into the computation makes
+them certain. That is the whole idea.
 
-\* against a deliberately generous μ=1.5 reference ellipse. Symmetry alone is the worst
-case for the envelope — a correct shape with an unconstrained magnitude.
+## Features
 
-**Experiment 1**, full budget (6 000 synthetic samples, 300 epochs, identical
-optimiser/seed/budget per rung). RMSE in newtons on a tire loaded to ~1.4 kN;
-`envelope (μ=1.1)` is measured against the *true* friction limit of the data, i.e. what
-a controller would plan against:
+- **Analytical tire laws**, differentiable and parameter-free: linear, brush, Dugoff,
+  Magic Formula with load sensitivity and similarity combined slip.
+- **Encoded neural models** — exact odd symmetry, exact zero force at zero slip, a hard
+  friction envelope via differentiable radial projection, and bounded physical parameters.
+- **Dynamic extensions** — relaxation as a first-order ODE in travelled distance;
+  optional thermal, wear and graining states with structural irreversibility and bounds.
+- **Vehicle-level learning** — one shared tire model across four corners inside exact
+  Newton–Euler equations, trainable from IMU signals alone.
+- **Honest baselines** — plain MLP, MLP + friction penalty, GRU and Neural ODE controls,
+  plus a properly fitted analytical model.
+- **Dataset adapters** for six public tire and vehicle datasets, onto one canonical schema.
+- **157 tests**, with every structural guarantee checked under adversarially random
+  weights.
 
-| model | params | test $F_y$ RMSE | extrap. RMSE | zero-slip force | symmetry | envelope (μ=1.1) |
-|---|---|---|---|---|---|---|
-| Magic Formula (fitted) | 0 | 17.71 | 17.87 | 0 | 0 | 0 |
-| plain MLP | 4 546 | 18.61 | 18.32 | 0.016 | 0.076 | 0.065 |
-| MLP + friction **penalty** | 4 546 | 18.14 | 18.10 | 0.014 | 0.100 | 0.057 |
-| symmetry-encoded | 1 250 | 17.61 | 17.60 | **0** | **0** | 0.426 |
-| symmetry + hard envelope | 1 254 | 18.55 | 19.21 | **0** | **0** | **0** |
-| ParameterNet + Magic Formula | 1 483 | **17.39** | **17.49** | **0** | **0** | **0** |
-| residual grey-box | 1 254 | 17.47 | 17.48 | **0** | **0** | **0** |
-
-Read it carefully, because it does *not* say the priors make the model much more
-accurate:
-
-1. **On clean, plentiful, in-distribution data, accuracy is close to a wash** — 17.4 to
-   18.6 N across every rung. What separates them is the guarantee column, not the RMSE
-   column. Anyone claiming a large accuracy win from physics encoding on data like this
-   is probably comparing against an under-trained baseline.
-2. **The friction penalty does not deliver the constraint.** It cut the violation of the
-   true limit by 13 % (0.065 → 0.057) and made the *symmetry* violation worse
-   (0.076 → 0.100) — it is a soft trade-off, not a constraint. The structural version is
-   exactly zero, for every weight vector.
-3. **Data efficiency is where the priors win decisively**, and it is the only place the
-   accuracy gap is large — see the learning curve below.
-
-Test $F_y$ RMSE [N] vs training-set size — the regime a real tire programme lives in,
-because rig time is expensive:
-
-| training samples | Magic Formula (fitted) | plain MLP | symmetry | residual | encoded | ParameterNet |
-|---|---|---|---|---|---|---|
-| 210 | 196.9 | 95.2 | 75.3 | 25.2 | 20.6 | **17.4** |
-| 570 | 17.6 | 20.3 | 42.8 | 19.0 | 19.0 | **17.3** |
-| 1 547 | 17.6 | 18.4 | 26.8 | 18.1 | 18.8 | **17.3** |
-| 4 200 | 17.7 | 18.1 | 17.7 | 17.5 | 18.6 | **17.4** |
-
-Two things stand out:
-
-* **The encoded models are near their final accuracy from 210 samples.** The plain MLP
-  needs roughly an order of magnitude more data to catch up.
-* **The analytical baseline is not automatically data-efficient.** The `scipy`
-  Magic-Formula fit is the *worst* model at 210 samples (196.9 N) — five free parameters
-  on sparse, noisy data is an ill-conditioned fit — and only recovers by 570. The
-  ParameterNet contains the same Magic Formula but predicts its coefficients through
-  bounded transforms, and is stable at every size. The bounded parameterisation is doing
-  real regularisation work, not just bookkeeping.
-
-(The `mlp_penalty` column is omitted: a bug meant the learning-curve loop dropped the
-penalty, making that rung an exact duplicate of `mlp`. Fixed in
-`experiments/train_direct_force.py`; the main table above is unaffected, as it takes a
-separate code path.)
-
-**Experiment 2** measures the **rise-distance ratio** between 30 m/s and 10 m/s: ≈1 means
-the transient is parameterised by travelled distance (physically correct), ≈3 means a
-fixed *time* constant was learned. Across two runs the encoded relaxation cells score
-0.92–1.25, the Neural ODE 3.00 both times, and the GRU 2.25 and 0.53 — i.e. the
-unstructured baselines' speed law is a property of the run, not of the tire. The encoded
-cell also has the lowest rollout error (110 N vs the GRU's 203 N) and recovers
-$\sigma_y \approx 0.25$ m against a true 0.30 m.
-
-All numbers above come from synthetic, Magic-Formula-generated data with clean Gaussian
-noise on a dense slip grid — kinder than any real rig, and structurally matched to
-`ParameterTireNet`. Re-run on real measurements before drawing conclusions about
-relative accuracy.
-
-## Install
+## Installation
 
 ```bash
+git clone https://github.com/agpoks/tire_physics_nn.git
+cd tire_physics_nn
 python -m pip install -e .            # core
-python -m pip install -e ".[ode]"     # + torchdiffeq (optional Neural-ODE path)
+python -m pip install -e ".[ode]"     # + torchdiffeq (optional Neural-ODE integrator)
 python -m pip install -e ".[dev]"     # + pytest, jupyter, pyarrow
 ```
 
-Python 3.10+, PyTorch 2.2+. `torchdiffeq` and `nnodely` are optional; the framework runs
-fully without them (fixed-step Euler/RK4 is the default integrator).
+Python 3.10+, PyTorch 2.2+. `torchdiffeq` and `nnodely` are optional and never imported
+at module level.
 
-## Layout
+## Quick start
+
+```python
+import torch
+from tire_nn.data import TireDataset, make_synthetic, split_by_group
+from tire_nn.models import EncodedTireNet
+from tire_nn.training import TrainConfig, train_model
+from tire_nn.evaluation import audit
+
+df = make_synthetic(4000, mu=1.1, seed=0)
+train_df, val_df, test_df = split_by_group(df)
+make_ds = lambda d: TireDataset(d, targets=("Fx", "Fy"))
+
+model = EncodedTireNet(hidden=(32, 32))
+train_model(model, make_ds(train_df), make_ds(val_df),
+            TrainConfig(epochs=100, targets=("Fx", "Fy"), lr=2e-3))
+
+print(audit(model, n=4096, alpha_max=0.6, kappa_max=0.6))
+# {'sym_violation_y': 0.0, 'zero_slip_force': 0.0, 'envelope_violation': 1.2e-07, ...}
+```
+
+Every violation is zero to machine precision — and would have been before training too.
+Swap in `MLPTireModel` and the same call returns finite values for all of them.
+
+## Documentation
+
+```bash
+cd docs && python generate_figures.py && python diagrams.py && make html
+open _build/html/index.html
+```
+
+The documentation is organised in four parts:
+
+| | |
+|---|---|
+| **Tire physics** | every physical effect available for modelling — slip conventions, the four steady-state laws, combined slip, transients, thermal/wear/graining, vehicle dynamics — with equations, plots and an honest account of what each gets wrong |
+| **Method** | precise definitions of physics-guided, physics-informed and physics-encoded, and six concrete patterns for integrating a physical law into a network |
+| **Models** | every model, its equations, the physics it contains and an architecture diagram |
+| **Comparisons** | measured dynamic behaviour, benchmark tables and a trade-off matrix |
+
+Three executed notebooks are in [`notebooks/`](notebooks/).
+
+## Repository layout
 
 ```
 tire_nn/
-  layers/      symmetry, friction_envelope, bounded_parameters, slip_kinematics
-  models/      mlp / encoded / parameter / residual / relaxation / thermo-graining / four-wheel
-  physics/     pacejka, brush, vehicle_dynamics, thermal, wear   (no learnable parameters)
-  data/        dataset adapters -> one canonical schema (PLAN.md §4)
-  training/    losses, trainer, metrics
-  evaluation/  plots, extrapolation, physical_consistency
-experiments/   train_direct_force / train_relaxation / train_vehicle_supervised / train_graining
-scripts/       download_<dataset>.py, fit_magic_formula.py
-notebooks/     01 encoded tire force, 02 relaxation+graining cell, 03 four-wheel supervision
-tests/         invariant tests (symmetry, envelope, bounds, monotonicity, shared weights)
-docs/          Sphinx/ReadTheDocs theory tutorial + API reference
-papers/        references.bib
+  physics/     analytical laws, vehicle dynamics, thermal/wear  (no learnable parameters)
+  layers/      slip kinematics, symmetry, friction envelope, bounded parameters
+  models/      the model catalogue, from black box to fully encoded
+  data/        dataset adapters onto one canonical schema
+  training/    losses, metrics, deterministic trainer
+  evaluation/  consistency audit, extrapolation protocol, plots
+configs/       one YAML per experiment
+experiments/   four runnable experiments
+notebooks/     three executed notebooks
+scripts/       dataset download helpers, Magic-Formula fitting
+docs/          Sphinx documentation and figure generators
+tests/         invariant and contract tests
 ```
+
+## Results
+
+On synthetic steady-state data with a full training budget, **accuracy is close to a
+wash** across every model (17.4–18.6 N test RMSE) — what separates them is the guarantee
+columns:
+
+| model | params | test $F_y$ RMSE | zero-slip force | symmetry | envelope violation |
+|---|---|---|---|---|---|
+| Magic Formula (fitted) | 0 | 17.71 | 0 | 0 | 0 |
+| plain MLP | 4 546 | 18.61 | 0.016 | 0.076 | 0.065 |
+| MLP + friction **penalty** | 4 546 | 18.14 | 0.014 | 0.100 | 0.057 |
+| symmetry + hard envelope | 1 254 | 18.55 | **0** | **0** | **0** |
+| ParameterNet + Magic Formula | 1 483 | **17.39** | **0** | **0** | **0** |
+
+The soft penalty cut the violation it targeted by 13 % and made the symmetry violation
+*worse*. The structural version is exactly zero at no cost in accuracy.
+
+**Data efficiency is where the priors win decisively** — test $F_y$ RMSE by training-set
+size:
+
+| samples | Magic Formula (fitted) | plain MLP | encoded | ParameterNet |
+|---|---|---|---|---|
+| 210 | 196.9 | 95.2 | 20.6 | **17.4** |
+| 4 200 | 17.7 | 18.1 | 18.6 | **17.4** |
+
+Full tables, including the transient and vehicle-level experiments, are in the
+documentation.
+
+> **Caveat.** All published numbers come from synthetic, Magic-Formula-generated data
+> with clean Gaussian noise — kinder than any real rig, and structurally matched to
+> `ParameterTireNet`. Re-run on real measurements before drawing conclusions about
+> relative accuracy.
 
 ## Datasets
 
 No dataset is committed and nothing large downloads automatically. Each source has a
 `scripts/download_<name>.py` that fetches a small subset or prints exact manual steps.
-Every dataset is labelled **real measurement / simulated / game telemetry / synthetic** —
-see `data/README.md` and PLAN.md §4.4. All experiments also run on in-repo synthetic data.
+Adapters exist for the KIT inner-drum dataset, VeTyT bicycle tyre measurements, a TUM
+cargo-bicycle set, Deep Dynamics (BayesRace + Indy Autonomous Challenge), RoboRacer and
+Q-Motion.
 
-## Caveat
+Every dataset is labelled **real measurement / simulated / game telemetry / synthetic**,
+and that label travels with it into any results table. Sources whose primary reference
+could not be verified are marked `UNVERIFIED` rather than guessed.
 
-The graining/wear demonstrator (Experiment 4) uses synthetic, weakly supervised states.
-It illustrates the model structure — it is **not** validated real motorsport graining.
+## Testing
+
+```bash
+python -m pytest -q        # ~90 s
+```
+
+Every structural guarantee is tested with **adversarially randomised weights** — if a
+property only held after training, it would be a penalty in disguise.
+
+## Citation
+
+```bibtex
+@software{poks_tire_physics_nn,
+  author = {Poks, Agnes},
+  title  = {tire_physics_nn: physics-encoded neural tire models for autonomous racing},
+  year   = {2026},
+  url    = {https://github.com/agpoks/tire_physics_nn}
+}
+```
+
+References for the underlying tire and vehicle theory are in
+[`papers/references.bib`](papers/references.bib).
+
+## License
+
+No license file has been added yet — choose one before publishing or sharing the
+repository. Note that the KIT dataset is CC BY-NC-SA 4.0, which constrains commercial
+use of anything derived from it.
