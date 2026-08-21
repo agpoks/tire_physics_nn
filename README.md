@@ -8,7 +8,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![PyTorch 2.2+](https://img.shields.io/badge/pytorch-2.2%2B-ee4c2c)](https://pytorch.org/)
-[![tests](https://img.shields.io/badge/tests-173%20passing-brightgreen)](tests/)
+[![tests](https://img.shields.io/badge/tests-199%20passing-brightgreen)](tests/)
 [![docs](https://img.shields.io/badge/docs-sphinx-informational)](docs/)
 
 A research framework for tire models in which the physics lives in the **architecture**
@@ -52,13 +52,19 @@ them certain. That is the whole idea.
 - **Degradation as a universal differential equation** — known observation structure,
   learned kinetics, identified from **real Formula 1 stint data** where the tyre state
   is never measured.
+- **The contact patch as a PDE** — the brush model discretised onto a chain, with the
+  pressure distribution learned under an exact load balance (`softmax`), beating the
+  parabolic assumption 9× on a tyre whose patch is not parabolic.
+- **Condition from imagery** — a monotone wear index with ordered ordinal thresholds,
+  recovering continuous wear (r = 0.98) from the three ordered classes that real tyre
+  datasets actually provide.
 - **Vehicle-level learning** — one shared tire model across four corners inside exact
   Newton–Euler equations, trainable from IMU signals alone.
 - **Honest baselines** — plain MLP, MLP + friction penalty, GRU and Neural ODE controls,
   plus a properly fitted analytical model.
 - **Dataset adapters** for seven public tire, vehicle and stint datasets, onto canonical
   schemas — including a working, no-API-key path to real F1 timing data.
-- **173 tests**, with every structural guarantee checked under adversarially random
+- **199 tests**, with every structural guarantee checked under adversarially random
   weights.
 
 ## Installation
@@ -128,7 +134,7 @@ tire_nn/
   evaluation/  consistency audit, extrapolation protocol, plots
 configs/       one YAML per experiment
 experiments/   five runnable experiments
-notebooks/     three executed notebooks
+notebooks/     six executed notebooks
 scripts/       dataset download helpers, Magic-Formula fitting
 docs/          Sphinx documentation and figure generators
 tests/         invariant and contract tests
@@ -170,6 +176,12 @@ decomposition is not reliably identifiable** — the lap-time fit is stable (RMS
 0.63. One scalar per lap cannot robustly separate two latent states. Trust the total
 degradation and the known parameters; do not trust an individual channel without a
 second observation.
+
+**Identifiability, and how to fix it.** The wear/graining split is not identifiable from
+lap time alone — across seeds the fit is stable while the recovered wear swings between
+0.29 and 0.63 correlation with the hidden truth. Adding **one photograph per pit stop**
+collapses that spread 28× (to 0.934–0.952) while the lap-time fit barely moves: the
+image adds information, not flexibility.
 
 On **real 2023 F1 data** (8 races, 7 223 dry laps, via FastF1) the 45-parameter linear
 baseline generalises best (0.82 s against the UDE's 1.10 s) — over a 14-lap stint real

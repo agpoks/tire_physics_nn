@@ -76,6 +76,8 @@ physics/combined-slip
 physics/transient
 physics/thermal-wear
 physics/degradation
+physics/imaging
+physics/contact-patch
 physics/vehicle
 ```
 
@@ -121,6 +123,8 @@ notebooks/01_encoded_tire_force
 notebooks/02_relaxation_graining_tire_cell
 notebooks/03_four_wheel_physics_supervision
 notebooks/04_tyre_degradation_ude
+notebooks/05_brush_patch_pde
+notebooks/06_condition_from_images
 ```
 
 ```{toctree}

@@ -15,11 +15,13 @@ at each level, and this framework lets you.
 |---|---|---|---|
 | 0 | What *is* slip? | kinematic definitions, sign conventions | [Conventions](conventions) |
 | 1 | Force from slip, one axis | linear · brush · Dugoff · Magic Formula | [Steady state](steady-state) |
+| 1b | ...or keep the contact patch explicit | discretised brush PDE on a chain | [The contact patch as a PDE](contact-patch) |
 | 2 | Force under simultaneous $\alpha$ and $\kappa$ | friction ellipse · similarity method · MF weighting functions | [Combined slip](combined-slip) |
 | 3 | How force depends on load | linear in $F_z$ · load-sensitive $\mu(F_z)$ | [Steady state](steady-state) |
 | 4 | How force responds in time | instantaneous · relaxation length · full carcass dynamics | [Transient](transient) |
 | 5 | How condition changes grip | none · thermal · + wear · + graining | [Thermal, wear, graining](thermal-wear) |
 | 5b | How condition is identified when it is never measured | UDE from lap-time data | [Degradation from stint data](degradation) |
+| 5c | How a second observation channel resolves what one cannot | encoded vision model, ordinal labels | [Imaging tyre condition](imaging) |
 | 6 | How four tires make a vehicle move | bicycle · four-wheel Newton–Euler | [Vehicle](vehicle.md) |
 
 Levels 1–3 are the *constitutive* model — the tire's own force law. Level 4 makes it

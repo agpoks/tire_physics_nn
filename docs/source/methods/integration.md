@@ -110,6 +110,9 @@ identity. Three techniques cover most cases:
 | positivity / non-negativity | `softplus`, `exp`, squaring |
 | a bound | a saturating radial map, $\tanh\rho/\rho$ |
 | an invariant interval $[0,1]$ | write the ODE so both boundaries are absorbing |
+| a **distribution** with a known integral | `softmax` — positivity and $\sum_i p_i \Delta\xi = F_z$ in one operation ([contact patch](../physics/contact-patch)) |
+| an **ordered** set of thresholds | cumulative `softplus`, $t_{k+1} = t_k + \mathrm{softplus}(b_k)$ ([imaging](../physics/imaging)) |
+| a monotone latent behind ordinal labels | one sigmoid output, thresholded — the classes cannot disagree with the ordering |
 
 **Buys** exactness with no tuning parameter and no runtime cost.
 **Costs** design effort, and it only works for properties expressible as algebra on the

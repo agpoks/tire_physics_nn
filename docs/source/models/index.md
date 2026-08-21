@@ -31,6 +31,8 @@ Fx, Fy = out                                  # unpacks like a tuple
 | `LapDegradationUDE` | physics-encoded, UDE | additive observation, monotone wear, bounded graining | 1 307 | [degradation](../physics/degradation) |
 | `LinearDegradationModel` | analytical baseline | lap time linear in tyre age | 47 | [degradation](../physics/degradation) |
 | `BlackBoxDegradationModel` | black box | none | 1 427 | [degradation](../physics/degradation) |
+| `PatchBrushNet` | physics-encoded, PDE | brush ODE on a chain, exact load balance, friction bound | 2 708 | [contact patch](../physics/contact-patch) |
+| `TreadConditionNet` | physics-encoded, vision | monotone wear index, ordered ordinal thresholds, bounded graining | 5 k | [imaging](../physics/imaging) |
 
 \* at default width, for the configuration used in Experiment 1.
 
