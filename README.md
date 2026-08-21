@@ -8,7 +8,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![PyTorch 2.2+](https://img.shields.io/badge/pytorch-2.2%2B-ee4c2c)](https://pytorch.org/)
-[![tests](https://img.shields.io/badge/tests-218%20passing-brightgreen)](tests/)
+[![tests](https://img.shields.io/badge/tests-222%20passing-brightgreen)](tests/)
 [![docs](https://img.shields.io/badge/docs-sphinx-informational)](docs/)
 
 A research framework for tire models in which the physics lives in the **architecture**
@@ -64,7 +64,7 @@ them certain. That is the whole idea.
   plus a properly fitted analytical model.
 - **Dataset adapters** for seven public tire, vehicle and stint datasets, onto canonical
   schemas — including a working, no-API-key path to real F1 timing data.
-- **218 tests**, with every structural guarantee checked under adversarially random
+- **222 tests**, with every structural guarantee checked under adversarially random
   weights.
 
 ## Installation
@@ -205,7 +205,7 @@ drift apart:
 ```python
 from tire_nn.data import registry
 
-registry.describe()                       # all 13, with type, licence and status
+registry.describe()                       # all 19, with type, licence and status
 registry.describe("kit")                  # url, size, licence, exact steps, target folder
 df = registry.get("f1_stints")            # downloads via FastF1 (no API key) and loads
 df = registry.get("kit", root="data/raw") # loads if present, else prints the steps
@@ -218,9 +218,12 @@ here that needs no manual step.
 
 No dataset is committed and nothing large downloads automatically. Each source has a
 `scripts/download_<name>.py` that fetches a small subset or prints exact manual steps.
-Adapters exist for the KIT inner-drum dataset, VeTyT bicycle tyre measurements, a TUM
-cargo-bicycle set, Deep Dynamics (BayesRace + Indy Autonomous Challenge), RoboRacer and
-Q-Motion. **Formula 1 stint data is the exception that needs no manual step** — it comes
+Adapters exist for FSAE TTC / Calspan, the KIT inner-drum dataset, VeTyT bicycle tyre
+measurements, a TUM cargo-bicycle set, Deep Dynamics (BayesRace + Indy Autonomous
+Challenge), RoboRacer and Q-Motion, plus vehicle-level sources (RACECAR, TartanDrive)
+and tyre imagery. **FSAE TTC is the best fit** — force *and* moment across 40+ tire
+constructions at controlled load, pressure, camber and temperature — but it needs
+consortium membership; `kit` is the open alternative covering the same quantities. **Formula 1 stint data is the exception that needs no manual step** — it comes
 from the MIT-licensed FastF1 package with no API key:
 
 ```bash

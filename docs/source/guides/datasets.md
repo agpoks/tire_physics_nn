@@ -39,6 +39,12 @@ truth — the loader, the download helper and this table cannot drift apart.
 | `roboracer` — RoboRacer / F1TENTH model-structured NN dataset | real ⚠ | vehicle-level logs with tire-set and mass-change experiments | **source unverified** | Experiments 2 and 3 |
 | `f1_stints` — Formula 1 stint data (lap time, compound, tyre age, weather) | real | lap time, compound, tyre age, track/air temperature, fuel fraction | [link](https://github.com/theOehrly/Fast-F1), **automatic** · ~50 MB for 8 races, cached locally | Experiment 5 |
 | `tyre_condition_images` — Tyre condition photographs (ordinal: new / serviceable / unusable) | real | photographs with ORDINAL wear labels — no measured tread depth | [link](https://www.kaggle.com/datasets/sameersambhare1/tyre-condition-classification-dataset), manual · ~100 MB | Notebook 6 (imaging) |
+| `fsae_ttc` — FSAE Tire Test Consortium / Calspan tire force and moment data | real | Fx, Fy, Fz, Mz vs slip angle, slip ratio, camber, load, pressure, speed and tire temperature; 430+ tests over 40+ constructions | [link](https://www.fsaettc.org/), manual · GBs across all rounds; a single round is manageable | Experiment 1 (the best available fit) |
+| `tudelft_bicycle_mf` — TU Delft Magic Formula parameters — bicycle tyres | real | published Magic Formula coefficients vs load, pressure and camber (PARAMETERS, not raw time series) | [link](https://research.tudelft.nl/en/datasets/magic-formula-parameters-bicycle-tyres/), manual · tiny | validating ParameterTireNet |
+| `racecar` — RACECAR — high-speed autonomous racing (Indy Autonomous Challenge) | real | 6.5 h over 27 sessions, six teams, speeds to 273 km/h; LiDAR, radar, camera, IMU, GPS, vehicle states — no measured tire forces | [link](https://github.com/linklab-uva/RACECAR_DATA), manual · large; download selected scenarios | Experiment 3 (vehicle-supervised) |
+| `tartandrive` — TartanDrive 2.0 — off-road driving with proprioception | real | 7 h to 15 m/s; camera, IMU, GPS, wheel encoders, LiDAR, changing terrain — no measured tire forces | [link](https://theairlab.org/TartanDrive2/), manual · large | surface / friction adaptation (condition model) |
+| `road_surface_images` — Road surface condition imagery (dry / wet / snow / ice / rough) | real ⚠ | road-surface photographs with condition classes — no vehicle states | **source unverified** | vision prior on friction (analogous to the tread-imagery channel) |
+| `simulator_ground_truth` — Simulator ground truth (F1TENTH / CARLA / scuderia_gymnasium) | simulated | full state including tire forces, slip, mu — labels no rig provides | [link](https://github.com/f1tenth/f1tenth_gym), manual · generated on demand | pretraining and ablation ground truth |
 | `synthetic_force` — Synthetic steady-state force data (Magic Formula + noise) | synthetic | alpha, kappa, Fz, Fx, Fy, optional pressure context | generated in-repo | Experiment 1 |
 | `synthetic_transient` — Synthetic step tests with known relaxation lengths | synthetic | slip/force sequences with a known sigma | generated in-repo | Experiment 2 |
 | `synthetic_vehicle` — Synthetic vehicle logs from a known tire | synthetic | IMU, yaw rate, wheel speeds, steering — no tire forces | generated in-repo | Experiment 3 |
@@ -93,6 +99,48 @@ framework working on real measurements.
 
 An unverifiable dataset citation is worse than a missing one, which is why the
 unverified entries are flagged in the registry itself rather than quietly listed.
+
+
+## What a dataset needs to be useful here
+
+This project models **tire force**. That sets a hard requirement, and it is worth being
+explicit because many excellent driving datasets cannot serve it:
+
+1. **Measured tire forces** — then it trains the constitutive model directly
+   (Experiment 1). Only rig data has this: `fsae_ttc`, `kit`, `vetyt`.
+2. **Vehicle states near the friction limit** — then the tire is identifiable
+   *indirectly*, through the Newton–Euler equations (Experiment 3). Needs IMU, yaw rate,
+   wheel speeds, steering, and crucially a vehicle that actually approaches the limit:
+   `racecar`, `deep_dynamics`, `roboracer`.
+3. **An observation of tire condition** — then it constrains a latent state the dynamics
+   alone cannot resolve (Experiment 5, notebook 6): `tyre_condition_images`,
+   `f1_stints`, potentially `tartandrive` for surface.
+
+A dataset meeting none of these cannot inform a tire model, however rich it is.
+
+### Considered and deliberately excluded
+
+| dataset family | what it offers | why it is not here |
+|---|---|---|
+| DDD17 / DDD20 / DSEC | event cameras, some steering and speed | no tire or force content; the event modality does not observe anything this model represents |
+| DriveLM / nuScenes | scene reasoning, QA, planning | perception and semantics, not vehicle dynamics; no forces, no limit operation |
+| DR(eye)VE / Look Both Ways / Brain4Cars | driver gaze and intent | describes the *driver*, not the tire |
+| comma2k19 | real road driving, camera + IMU + GPS | road cars rarely exceed ~0.3 g laterally, so the data carries almost no information about where the friction limit is — the one thing a tire model most needs |
+| e-scooter / micromobility | IMU, GPS, surface and fall classes | different vehicle class, and no front/rear force split, so the per-wheel structure cannot be identified |
+| generic lap telemetry (Hack-the-Track, GR) | speed, gear, throttle, brake, lap times | weaker than `f1_stints` for the same purpose: without compound and tyre age there is no degradation signal to attribute |
+
+This is not a judgement of those datasets — several are excellent for perception,
+planning or driver modelling. It is a statement that adding them here would invite
+exactly the error the registry exists to prevent: treating a dataset as evidence for a
+quantity it never measured.
+
+### On restricted access
+
+`fsae_ttc` is the best fit for this project and is **not open**: it needs consortium
+membership and cannot be redistributed. That is worth the effort if you have a route to
+it, because it is the only source with force *and* moment measurements across many tire
+constructions, at controlled load, pressure, camber and temperature. If you do not,
+`kit` is open under CC BY-NC-SA and covers the same quantities for one tire.
 
 ## The canonical schema
 

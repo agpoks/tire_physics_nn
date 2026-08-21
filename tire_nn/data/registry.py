@@ -226,6 +226,146 @@ DATASETS: dict[str, Dataset] = {
              "ordinal classes are a genuine wear ordering, which is what the monotone "
              "wear index in TreadConditionNet is built to consume.",
     ),
+    "fsae_ttc": Dataset(
+        key="fsae_ttc",
+        title="FSAE Tire Test Consortium / Calspan tire force and moment data",
+        kind="real",
+        provides="Fx, Fy, Fz, Mz vs slip angle, slip ratio, camber, load, pressure, "
+                 "speed and tire temperature; 430+ tests over 40+ constructions",
+        url="https://www.fsaettc.org/",
+        licence="consortium members only; redistribution not permitted",
+        size="GBs across all rounds; a single round is manageable",
+        auto=False,
+        used_by="Experiment 1 (the best available fit)",
+        loader="tire_nn.data.fsae_ttc.load_fsae_ttc",
+        subdir="fsae_ttc",
+        steps=(
+            "Register at https://www.fsaettc.org/ — a fee applies and the consortium is "
+            "aimed at Formula SAE teams, so university affiliation is the usual route.",
+            "Download the round data from the members' server "
+            "(test facility: https://calspan.com/automotive/fsae-ttc).",
+            "Export runs to CSV or convert the .mat files into data/raw/fsae_ttc/.",
+            "CHECK THE SIGNS on one pure-lateral sweep: TTC often reports FZ negative "
+            "(handled) and the Fy sign depends on the processing axis system (pass "
+            "flip_signs=True if needed).",
+        ),
+        note="The single most valuable dataset for this project: it is exactly the "
+             "steady-state force data Experiment 1 is built around, across many tire "
+             "constructions, which is what the tire-id context embedding is for. "
+             "Method paper: SAE 2006-01-3606.",
+    ),
+    "tudelft_bicycle_mf": Dataset(
+        key="tudelft_bicycle_mf",
+        title="TU Delft Magic Formula parameters — bicycle tyres",
+        kind="real",
+        provides="published Magic Formula coefficients vs load, pressure and camber "
+                 "(PARAMETERS, not raw time series)",
+        url="https://research.tudelft.nl/en/datasets/magic-formula-parameters-bicycle-tyres/",
+        licence="see the TU Delft research portal entry",
+        size="tiny",
+        auto=False,
+        used_by="validating ParameterTireNet",
+        subdir="tudelft_bicycle_mf",
+        steps=(
+            "Download the parameter tables from the TU Delft research portal.",
+            "These are fitted coefficients, not measurements: use them as a validation "
+            "target (does ParameterTireNet recover comparable B, C, D, E?) or to "
+            "generate synthetic data with realistic coefficients.",
+        ),
+        note="Companion to the VeTyT measurements (Dell'Orto et al., Vehicle System "
+             "Dynamics 2024). A published coefficient set is a rare and useful thing: "
+             "it lets the parameter network be checked against numbers someone else "
+             "fitted, rather than only against its own training data.",
+    ),
+    "racecar": Dataset(
+        key="racecar",
+        title="RACECAR — high-speed autonomous racing (Indy Autonomous Challenge)",
+        kind="real",
+        provides="6.5 h over 27 sessions, six teams, speeds to 273 km/h; LiDAR, radar, "
+                 "camera, IMU, GPS, vehicle states — no measured tire forces",
+        url="https://github.com/linklab-uva/RACECAR_DATA",
+        licence="open (also on the AWS Open Data Registry and Hugging Face)",
+        size="large; download selected scenarios",
+        auto=False,
+        used_by="Experiment 3 (vehicle-supervised)",
+        subdir="racecar",
+        steps=(
+            "Clone https://github.com/linklab-uva/RACECAR_DATA or pull selected "
+            "scenarios from the AWS Open Data Registry / Hugging Face mirror.",
+            "Data ships in ROS2 and nuScenes formats; extract the vehicle-state and "
+            "wheel-speed channels into the vehicle schema (tire_nn/data/vehicle.py).",
+            "Cite the RACECAR paper (arXiv:2306.03252).",
+        ),
+        note="Unusually valuable for vehicle-level tire identification because the cars "
+             "actually operate near the friction limit — road-car datasets rarely do, "
+             "and a vehicle that never approaches the limit carries no information "
+             "about where it is.",
+    ),
+    "tartandrive": Dataset(
+        key="tartandrive",
+        title="TartanDrive 2.0 — off-road driving with proprioception",
+        kind="real",
+        provides="7 h to 15 m/s; camera, IMU, GPS, wheel encoders, LiDAR, changing "
+                 "terrain — no measured tire forces",
+        url="https://theairlab.org/TartanDrive2/",
+        licence="see the project page",
+        size="large",
+        auto=False,
+        used_by="surface / friction adaptation (condition model)",
+        subdir="tartandrive",
+        steps=(
+            "Follow the download instructions at https://theairlab.org/TartanDrive2/ .",
+            "Map the proprioceptive and IMU channels onto the vehicle schema.",
+            "Cite TartanDrive 2.0 (arXiv:2402.01913).",
+        ),
+        note="The interesting property here is deliberate terrain change, which makes it "
+             "a candidate for identifying a surface-dependent friction state rather than "
+             "a single mu — the same second-channel argument as the tread imagery.",
+    ),
+    "road_surface_images": Dataset(
+        key="road_surface_images",
+        title="Road surface condition imagery (dry / wet / snow / ice / rough)",
+        kind="real",
+        provides="road-surface photographs with condition classes — no vehicle states",
+        url=None,
+        licence="unknown",
+        size="unknown",
+        auto=False,
+        used_by="vision prior on friction (analogous to the tread-imagery channel)",
+        verified=False,
+        steps=(
+            "No primary source confirmed for the RSCD / extreme-road-image sets; locate "
+            "the release and record it here before use.",
+            "The intended role is a second observation channel constraining mu, exactly "
+            "as tread imagery constrains wear and graining — see the imaging chapter.",
+        ),
+    ),
+    "simulator_ground_truth": Dataset(
+        key="simulator_ground_truth",
+        title="Simulator ground truth (F1TENTH / CARLA / scuderia_gymnasium)",
+        kind="simulated",
+        provides="full state including tire forces, slip, mu — labels no rig provides",
+        url="https://github.com/f1tenth/f1tenth_gym",
+        licence="see the individual simulator",
+        size="generated on demand",
+        auto=False,
+        used_by="pretraining and ablation ground truth",
+        steps=(
+            "Pick a simulator that exposes per-wheel forces: f1tenth_gym, "
+            "scuderia_gymnasium (this author's, with a full Pacejka/brush/Dugoff stack), "
+            "CARLA or Isaac Lab.",
+            "Log slip, load and the resulting tire forces together with the vehicle "
+            "states — the point is having both, which no rig or vehicle log provides.",
+            "Label every result SIMULATED and never pool it with measurements: a model "
+            "that fits a simulator has learned that simulator's tire model.",
+        ),
+        note="A simulator is the only source that gives per-wheel tire forces AND "
+             "vehicle states together, which makes it the right place to check that "
+             "vehicle-level identification recovers what it should. Its tire model is a "
+             "design artefact, though, so a model that fits it has only learned that "
+             "simulator: results must be labelled SIMULATED and never pooled with "
+             "measurements.",
+    ),
     # ------------------------------------------------------------------ synthetic
     "synthetic_force": Dataset(
         key="synthetic_force",

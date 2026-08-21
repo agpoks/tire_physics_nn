@@ -143,3 +143,57 @@ def test_analytical_baseline_needs_no_training():
                     epochs=2, verbose=False)
     assert int(table.iloc[0]["n_params"]) == 0
     assert float(table.iloc[0]["envelope_violation"]) == 0.0
+
+
+# --- the FSAE TTC adapter --------------------------------------------------
+
+def test_ttc_adapter_converts_units_and_signs(tmp_path):
+    """TTC files are degrees, kPa, km/h, Celsius — and often a negative FZ."""
+    import numpy as np
+    from tire_nn.data.common import make_synthetic
+    from tire_nn.data.fsae_ttc import load_fsae_ttc
+
+    truth = make_synthetic(150, seed=3)
+    folder = tmp_path / "fsae_ttc"
+    folder.mkdir()
+    pd.DataFrame({
+        "ET": np.arange(150) * 0.01,
+        "SA": np.rad2deg(truth["alpha"]),
+        "SR": truth["kappa"],
+        "IA": 0.0,
+        "FZ": -truth["Fz"],                 # TTC reports load negative in several rounds
+        "FX": truth["Fx"], "FY": truth["Fy"], "MZ": 0.0,
+        "P": 82.7, "V": 40.0, "TSTC": 35.0, "RST": 40.0,
+    }).to_csv(folder / "B1965run18.csv", index=False)
+
+    df = load_fsae_ttc(tmp_path)
+    assert np.allclose(df["alpha"], truth["alpha"], atol=1e-6)      # deg -> rad
+    assert (df["Fz"] > 0).all()                                     # sign normalised
+    assert np.isclose(df["p"].iloc[0], 82_700.0)                    # kPa -> Pa
+    assert np.isclose(df["vx"].iloc[0], 40 / 3.6)                   # km/h -> m/s
+    assert np.isclose(df["Ts"].iloc[0], 308.15)                     # C -> K
+    assert df["tire_id"].iloc[0] == "B1965run18"                    # per-run tire id
+
+
+def test_ttc_adapter_fails_with_membership_instructions(tmp_path):
+    from tire_nn.data.adapters import DatasetNotAvailable
+    from tire_nn.data.fsae_ttc import load_fsae_ttc
+
+    with pytest.raises(DatasetNotAvailable) as exc:
+        load_fsae_ttc(tmp_path)
+    assert "fsaettc.org" in str(exc.value)
+
+
+def test_registry_covers_the_three_ways_a_dataset_can_be_useful():
+    """Force data, limit-adjacent vehicle data, condition observations."""
+    used = " ".join(e.used_by.lower() for e in registry.DATASETS.values())
+    assert "experiment 1" in used          # direct force
+    assert "experiment 3" in used          # vehicle-supervised
+    assert "condition" in used or "experiment 5" in used
+
+
+def test_restricted_datasets_say_so_in_their_licence():
+    for key in ("fsae_ttc",):
+        licence = registry.DATASETS[key].licence.lower()
+        assert "member" in licence or "restrict" in licence, (
+            f"{key} has restricted access and the licence field must say so")
