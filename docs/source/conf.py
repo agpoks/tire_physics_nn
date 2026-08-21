@@ -44,6 +44,11 @@ bibtex_default_style = "plain"
 html_theme = "sphinx_rtd_theme"
 html_title = "tire_physics_nn"
 html_static_path = ["_static"]
+# The RTD sidebar is dark, so the light-text wordmark is the one that belongs there.
+# Regenerate all logo assets with: python docs/make_logo.py
+html_logo = "_static/logo-dark.svg"
+html_favicon = "_static/favicon.png"
+html_theme_options = {"logo_only": True, "style_external_links": True}
 
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 

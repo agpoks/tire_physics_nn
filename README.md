@@ -1,6 +1,10 @@
-# tire_physics_nn
+<p align="center">
+  <img src="docs/source/_static/logo.svg" alt="tire_physics_nn" width="440">
+</p>
 
-**Physics-encoded neural tire models for autonomous racing and motorsport.**
+<h1 align="center">tire_physics_nn</h1>
+
+<p align="center"><strong>Physics-encoded neural tire models for autonomous racing and motorsport.</strong></p>
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![PyTorch 2.2+](https://img.shields.io/badge/pytorch-2.2%2B-ee4c2c)](https://pytorch.org/)

@@ -1,5 +1,19 @@
 # tire_physics_nn
 
+```{image} _static/logo.svg
+:alt: tire_physics_nn
+:width: 430px
+:align: center
+:class: only-light
+```
+
+```{image} _static/logo-dark.svg
+:alt: tire_physics_nn
+:width: 430px
+:align: center
+:class: only-dark
+```
+
 **Physics-encoded neural tire models for autonomous racing and motorsport.**
 
 A research framework for building tire models in which the physics lives in the
